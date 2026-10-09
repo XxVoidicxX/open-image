@@ -11,16 +11,16 @@ from pathlib import Path
 
 import uvicorn
 from fastapi import FastAPI, HTTPException
-from fastapi.responses import FileResponse
-from PIL import Image
-from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse, Response
 from pydantic import BaseModel
+from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 from . import __version__, resources, timing
 from .catalog import ASPECTS, BY_ID, MODEL_LIST, QUALITIES, folder_size, size_for
 from .installs import Installer
 from .jobs import Manager
-from .paths import DATA, IMAGES, THUMBS
+from .paths import DATA, LEGACY_IMAGES, LEGACY_THUMBS, WINDOW
+from .vault import vault
 
 STATIC = Path(__file__).parent / "static"
 PORT = int(os.environ.get("OPEN_IMAGE_PORT", "7860"))
@@ -29,6 +29,14 @@ manager = Manager()
 installer = Installer()
 resources.monitor.busy = lambda: manager.busy
 app = FastAPI(title="Open Image", version=__version__, docs_url=None, redoc_url=None)
+app.add_middleware(TrustedHostMiddleware, allowed_hosts=["127.0.0.1", "localhost"])
+
+
+@app.middleware("http")
+async def never_cache(request, call_next):
+    response = await call_next(request)
+    response.headers["Cache-Control"] = "no-store"
+    return response
 
 
 class Generate(BaseModel):
@@ -107,21 +115,50 @@ def delete_image(job_id: str):
     return {"ok": True}
 
 
-@app.get("/thumb/{name}")
-def thumb(name: str):
-    job_id = Path(name).stem
-    if not job_id.isalnum():
+@app.get("/vault/{name}")
+def vault_file(name: str):
+    job_id, _, ext = name.partition(".")
+    if not job_id.isalnum() or ext not in ("png", "jpg"):
         raise HTTPException(404)
-    out = THUMBS / f"{job_id}.jpg"
-    if not out.exists():
-        src = IMAGES / f"{job_id}.png"
-        if not src.exists():
-            raise HTTPException(404)
-        with Image.open(src) as im:
-            im = im.convert("RGB")
-            im.thumbnail((560, 560))
-            im.save(out, "JPEG", quality=84)
-    return FileResponse(out, headers={"Cache-Control": "max-age=86400"})
+    data = vault.get(job_id, "full" if ext == "png" else "thumb")
+    if data is None:
+        raise HTTPException(404)
+    return Response(data, media_type="image/png" if ext == "png" else "image/jpeg")
+
+
+@app.get("/api/images/{job_id}/download")
+def download_image(job_id: str):
+    job = manager.jobs.get(job_id)
+    data = vault.get(job_id, "full") if job else None
+    if data is None:
+        raise HTTPException(404, "That image is no longer in memory.")
+    return Response(data, media_type="image/png", headers={"Content-Disposition": f'attachment; filename="{job["model"]}-{job["seed"]}.png"'})
+
+
+def leftovers():
+    found = []
+    for folder in (LEGACY_IMAGES, LEGACY_THUMBS):
+        if folder.is_dir():
+            found += [f for f in folder.iterdir() if f.is_file() and f.suffix.lower() in (".png", ".jpg", ".jpeg", ".webp")]
+    return found
+
+
+@app.get("/api/leftovers")
+def leftover_info():
+    files = leftovers()
+    return {"count": len(files), "folder": str(LEGACY_IMAGES)}
+
+
+@app.post("/api/leftovers/delete")
+def leftover_delete():
+    for f in leftovers():
+        f.unlink(missing_ok=True)
+    for folder in (LEGACY_IMAGES, LEGACY_THUMBS):
+        try:
+            folder.rmdir()
+        except OSError:
+            pass
+    return {"ok": True}
 
 
 @app.get("/api/state")
@@ -144,6 +181,8 @@ def generate(req: Generate):
     model = BY_ID.get(req.model)
     if not model or installer.downloading(model.id) or not model.installed:
         raise HTTPException(400, "That model is not installed.")
+    if vault.full:
+        raise HTTPException(409, "The in-memory picture store is full. Delete a few images to make room.")
     prompt = req.prompt.strip()
     if not prompt:
         raise HTTPException(400, "Write a prompt first.")
@@ -207,15 +246,14 @@ def index():
     return FileResponse(STATIC / "index.html", headers={"Cache-Control": "no-store"})
 
 
-app.mount("/img", StaticFiles(directory=str(IMAGES)), name="img")
-
-
 def open_window(url):
     edge = [os.path.join(os.environ.get(var, ""), r"Microsoft\Edge\Application\msedge.exe")
             for var in ("ProgramFiles(x86)", "ProgramFiles")]
     for exe in edge:
         if os.path.exists(exe):  # app mode gives a window without browser chrome
-            subprocess.Popen([exe, f"--app={url}", "--window-size=1320,860"])
+            WINDOW.mkdir(parents=True, exist_ok=True)  # own profile with the disk cache switched off
+            subprocess.Popen([exe, f"--app={url}", "--window-size=1320,860", f"--user-data-dir={WINDOW}",
+                              "--disk-cache-size=1", "--media-cache-size=1", "--no-first-run", "--no-default-browser-check"])
             return
     webbrowser.open(url)
 

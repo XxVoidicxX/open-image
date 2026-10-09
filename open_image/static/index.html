@@ -71,6 +71,10 @@ svg.i{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:2;stroke
 .bar{height:5px;border-radius:99px;background:var(--panel2);border:1px solid var(--line);overflow:hidden}
 .bar i{display:block;height:100%;width:0;border-radius:99px;background:var(--ok);transition:width .6s ease,background .3s}
 .bar i.warn{background:var(--warn)} .bar i.bad{background:var(--bad)}
+.vnote{display:flex;align-items:center;gap:7px;margin:2px 4px 8px;font-size:11.5px;color:var(--muted)}
+.vnote svg{width:13px;height:13px;flex:none}
+#leftbanner .banner{margin:0 0 8px}
+#leftbanner .link{margin-left:4px}
 .banner{margin:10px 0 0;padding:7px 10px;border-radius:10px;font-size:12px;border:1px solid rgba(251,191,36,.35);background:rgba(251,191,36,.08);color:#fcd34d}
 @media (prefers-color-scheme: light){.banner{color:#92400e}}
 
@@ -84,7 +88,7 @@ svg.i{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:2;stroke
 .btn{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:7px 12px;color:var(--muted);font-size:13px;transition:all .15s}
 .btn:hover{color:var(--text);border-color:var(--line2)}
 .menu-btn{display:none}
-.feed{flex:1;overflow:auto;padding:24px 24px 8px;scroll-behavior:smooth}
+.feed{flex:1;overflow:auto;padding:24px 24px 8px}
 .lane{max-width:880px;margin:0 auto;display:flex;flex-direction:column;gap:22px}
 .empty{max-width:640px;margin:8vh auto 0;text-align:center}
 .empty .logo{width:60px;height:60px;border-radius:18px;margin:0 auto 18px}
@@ -289,6 +293,8 @@ details.adv summary:hover,details.adv[open] summary{color:var(--text)}
     <button class="newchat" id="newchat"><svg class="i" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>New chat</button>
     <button class="navbtn" id="imagesbtn" aria-current="false"><svg class="i" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="3"/><circle cx="9" cy="10" r="1.6"/><path d="M21 16l-5-5-8 8"/></svg>Images<b id="imgcount"></b></button>
     <div class="chats" id="chats" role="list"></div>
+    <div id="leftbanner"></div>
+    <div class="vnote" id="vnote" title="Pictures are encrypted with a key made when the app started and are never written to disk. They go away when the app closes unless you save them."><svg class="i" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 018 0v3"/></svg><span id="vtext">Pictures stay in memory only</span></div>
     <div class="sys">
       <h3><span>This PC right now</span><span id="gpuname"></span></h3>
       <div class="sgrid">
@@ -316,7 +322,7 @@ details.adv summary:hover,details.adv[open] summary{color:var(--text)}
       <div class="gwrap">
         <div class="gfilter" id="gfilter"></div>
         <div class="ggrid" id="ggrid"></div>
-        <div class="gempty" id="gempty" hidden><b>No images yet</b>Everything you make shows up here, from every chat.</div>
+        <div class="gempty" id="gempty" hidden><b>No images yet</b>Everything you make shows up here, from every chat. Pictures are kept in memory only and are cleared when the app closes, so save the ones you want to keep.</div>
       </div>
     </section>
 
@@ -399,7 +405,7 @@ const ICON = {
 const ASPECT_LABEL = {square:"Square", wide:"Wallpaper 16:9", tall:"Phone 9:16"};
 const QUALITY_LABEL = {fast:"Fast", balanced:"Balanced", best:"Best"};
 const ACTIVE = ["queued","loading","encoding","generating"];
-const ST = { view:"chat", onlyUnc:false, mgrTab:"all", images:[], imgFilter:"", imgCount:-1, mgrSig:"", models:[], sel:null, chat:null, aspect:"square", quality:"balanced", est:{}, state:null, fetchedAt:0, editing:false, chatSig:"" };
+const ST = { view:"chat", onlyUnc:false, mgrTab:"all", images:[], imgFilter:"", imgCount:-1, mgrSig:"", models:[], sel:null, chat:null, aspect:"square", quality:"balanced", est:{}, state:null, fetchedAt:0, editing:false, chatSig:"", fresh:true };
 
 function fmt(s, round){
   s = Math.max(0, s);
@@ -520,7 +526,7 @@ function renameTitle(){
 }
 function setChat(id){ ST.chat = id; try { id ? localStorage.setItem("openimage.chat", id) : localStorage.removeItem("openimage.chat"); } catch(e){} }
 function newChat(silent){
-  setView("chat"); setChat(null); $("#lane").textContent = ""; $("#side").classList.remove("open");
+  setView("chat"); setChat(null); $("#lane").textContent = ""; ST.fresh = true; $("#side").classList.remove("open");
   if (ST.state) ST.state.jobs = [];
   renderChats(true); renderEmpty(); refreshHeader();
   if (!silent){ $("#prompt").focus(); poll(); }
@@ -529,7 +535,7 @@ function switchChat(id){
   $("#side").classList.remove("open");
   if (id === ST.chat){ if (ST.view !== "chat") setView("chat"); return; }
   setView("chat");
-  setChat(id); $("#lane").textContent = "";
+  setChat(id); $("#lane").textContent = ""; ST.fresh = true;
   if (ST.state) ST.state.jobs = [];
   const c = ST.state && ST.state.chats.find(x => x.id === id);
   if (c){ const m = modelById(c.model); if (m && m.available) selectModel(c.model); }
@@ -705,13 +711,19 @@ function updateActive(card, j){
   q("[data-foot]").textContent = `Estimated ${fmt(j.estimated_s, true)} in total`;
 }
 function buildDone(card, j){
+  if (!j.image){
+    card.className = "card"; card.textContent = "";
+    card.append(h("div", {class:"stat"}, h("div", {class:"l"}, "Picture cleared", h("span", {}, "Pictures are kept in memory only, so this one went away when the app closed."))),
+      h("div", {class:"actions"}, h("button", {class:"btn", onclick: () => reuse(j), html:ICON.reuse + "Reuse settings"}), retryBtn(j)));
+    return;
+  }
   card.className = "card result"; card.textContent = "";
-  const wrap = h("div", {class:"imgwrap", onclick: () => openLb(j.image)}, h("img", {src:j.image, alt:j.prompt, loading:"lazy"}));
+  const wrap = h("div", {class:"imgwrap", onclick: () => openLb(j.image)}, h("img", {src:j.image, alt:j.prompt, width:j.width, height:j.height}));
   const diff = j.estimated_s ? ` · estimated ${fmt(j.estimated_s, true)}` : "";
   card.append(wrap,
     h("div", {class:"meta"}, jobMeta(j), h("span", {}, "took ", h("b", {}, fmt(j.seconds)), diff)),
     h("div", {class:"actions"},
-      h("a", {class:"btn", href:j.image, download:`${j.model}-${j.seed}.png`, html:ICON.dl + "Save"}),
+      h("a", {class:"btn", href:`/api/images/${j.id}/download`, html:ICON.dl + "Save"}),
       h("button", {class:"btn", onclick: () => openLb(j.image), html:ICON.full + "Full size"}),
       h("button", {class:"btn", onclick: () => reuse(j), html:ICON.reuse + "Reuse settings"}),
       retryBtn(j)));
@@ -728,10 +740,12 @@ function reuse(j){
   setSeg("#aspect", j.aspect); setSeg("#quality", j.quality); ST.aspect = j.aspect; ST.quality = j.quality;
   $("#prompt").value = j.prompt; $("#neg").value = j.negative || ""; $("#seed").value = j.seed; autosize(); loadEstimates(); $("#prompt").focus(); syncSend();
 }
+let stick = true;  // follow new content only while the reader is at the bottom
+$("#feed").addEventListener("scroll", () => { const f = $("#feed"); stick = f.scrollHeight - f.scrollTop - f.clientHeight < 80; }, {passive:true});
 function renderJobs(){
   const lane = $("#lane"); const jobs = ST.state.jobs;
   renderEmpty();
-  const feed = $("#feed"); const near = (feed.scrollHeight - feed.scrollTop - feed.clientHeight) < 160;
+  const feed = $("#feed");
   let added = false;
   for (const j of jobs){
     if (!lane.querySelector(`[data-user="${j.id}"]`)){ lane.append(userNode(j), asstShell(j)); added = true; }
@@ -739,7 +753,8 @@ function renderJobs(){
   }
   const ids = new Set(jobs.map(j => j.id));
   lane.querySelectorAll("[data-user],[data-asst]").forEach(n => { if (!ids.has(n.dataset.user || n.dataset.asst)) n.remove(); });
-  if (added || near) requestAnimationFrame(() => { feed.scrollTop = feed.scrollHeight; });
+  if (jobs.length && ST.fresh){ ST.fresh = false; stick = true; added = true; }
+  if (added && stick) requestAnimationFrame(() => { feed.scrollTop = feed.scrollHeight; });
 }
 function tickCountdown(){
   if (!ST.state) return;
@@ -755,6 +770,7 @@ function wireSeg(sel, key){
 function autosize(){ const t = $("#prompt"); t.style.height = "auto"; t.style.height = Math.min(t.scrollHeight, 180) + "px"; }
 function syncSend(){ $("#send").disabled = !$("#prompt").value.trim() || !cur(); }
 async function submit(body){
+  stick = true;
   try {
     const r = await api("/api/generate", body);
     if (ST.chat !== r.chat_id){ setChat(r.chat_id); ST.chatSig = ""; }
@@ -843,7 +859,7 @@ function openDetail(it){
       h("span", {}, "Chat"), h("b", {}, it.chat_title || "-")),
     h("div", {class:"actions", style:"margin-top:auto"},
       h("button", {class:"btn", html:ICON.full + "Open chat", onclick: () => { closeDetail(); switchChat(it.chat_id); setView("chat"); }}),
-      h("a", {class:"btn", href:it.image, download:`${it.model}-${it.seed}.png`, html:ICON.dl + "Save"}),
+      h("a", {class:"btn", href:`/api/images/${it.id}/download`, html:ICON.dl + "Save"}),
       h("button", {class:"btn", html:ICON.reuse + "Reuse settings", onclick: () => { closeDetail(); if (it.chat_id !== ST.chat) switchChat(it.chat_id); setView("chat"); reuse(it); }}),
       copy, del));
   $("#detail").classList.add("open");
@@ -938,7 +954,16 @@ function afterPoll(st){
   }
   if (finished) refreshModels(); else { renderMgr(); const picked = document.querySelectorAll("[data-pk]"); picked.forEach(el => { const m = modelById(el.dataset.pk); if (m && active(m.download)) el.textContent = m.download.state === "checking" ? "Starting…" : Math.round((m.download.progress || 0) * 100) + "%"; }); }
   const n = st.image_count; $("#imgcount").textContent = n || "";
+  $("#vtext").textContent = n ? `${n} picture${n === 1 ? "" : "s"} in memory · ${st.vault_mb < 10 ? st.vault_mb.toFixed(1) : Math.round(st.vault_mb)} MB, encrypted` : "Pictures stay in memory only";
   if (ST.view === "images" && ST.imgCount !== n) loadImages();
+}
+
+async function checkLeftovers(){
+  let r; try { r = await api("/api/leftovers"); } catch(e){ return; }
+  const box = $("#leftbanner"); box.textContent = "";
+  if (!r.count) return;
+  box.append(h("div", {class:"banner"}, `${r.count} picture file${r.count === 1 ? " from an older version is" : "s from an older version are"} still on disk in ${r.folder}.`,
+    h("button", {class:"link", onclick: async () => { try { await api("/api/leftovers/delete", {}); } catch(e){} checkLeftovers(); }}, "Delete them")));
 }
 
 async function boot(){
@@ -952,7 +977,7 @@ async function boot(){
   renderModels(); selectModel(ST.sel);
   await Promise.all([poll(), loadEstimates()]);
   if (ST.chat){ const c = curChat(); if (c){ const m = modelById(c.model); if (m && m.available) selectModel(c.model); } }
-  renderChats(true); refreshHeader();
+  renderChats(true); refreshHeader(); checkLeftovers();
   setInterval(loadEstimates, 6000); setInterval(tickCountdown, 500);
   $("#prompt").addEventListener("input", () => { autosize(); syncSend(); });
   $("#prompt").addEventListener("keydown", e => { if (e.key === "Enter" && !e.shiftKey){ e.preventDefault(); if (!$("#send").disabled) send(); } });

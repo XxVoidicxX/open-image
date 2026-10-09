@@ -1,6 +1,6 @@
 # Open Image
 
-A local image generator with a chat interface. Pick a model, type a prompt, wait for the picture. It runs on your own GPU, keeps your chats and images on your own disk, and works offline once the models are downloaded.
+A local image generator with a chat interface. Pick a model, type a prompt, wait for the picture. It runs on your own GPU, keeps your chats on your own disk, never writes your pictures to disk, and works offline once the models are downloaded.
 
 It is built for mid-range cards. Everything here was developed and tested on an RTX 3050 with 8 GB of VRAM and 16 GB of RAM, so the larger models are loaded in 4-bit and swapped between GPU and system memory as needed. They are slower than on a big card, but they run.
 
@@ -8,8 +8,9 @@ It is built for mid-range cards. Everything here was developed and tested on an 
 
 ## Features
 
+- Pictures are never written to disk. Each one is encrypted with AES-256-GCM under a random key made when the app starts, and kept in memory only. See [Privacy](#privacy).
 - Chat-style interface. Chats are saved on your machine, can be renamed, and remember the model last used in each.
-- An Images page with everything you have made, from every chat. Filter by model, open any image for its prompt and settings, reuse them, or delete it.
+- An Images page with everything you have made since the app started, from every chat. Filter by model, open any image for its prompt and settings, reuse them, or delete it.
 - Ten models, installed and removed from inside the app. A filter shows the uncensored ones, including the ones you haven't downloaded yet.
 - A wait estimate for every model before you send. It learns from your own machine: each finished image is recorded together with how busy the GPU was with other programs, free RAM and GPU temperature, and later estimates lean on the runs that happened under similar conditions. It starts from defaults measured on an RTX 3050 and gets more accurate the more you use it.
 - Square, 16:9 wallpaper, and 9:16 phone shapes. Fast, balanced, and best quality presets.
@@ -71,14 +72,27 @@ Models come from Hugging Face and each keeps its own license. Check the model pa
 
 Typical times on an RTX 3050 8 GB at the default size, balanced quality: Stable Diffusion 1.5 about 20 s, SDXL and the anime models about 35 s, FLUX.2 Klein about 15 s once loaded, Z-Image Turbo about 45 s, Chroma HD about 4 min, Qwen Image 2.1 about 3 min plus about a minute of loading.
 
+## Privacy
+
+Generated pictures exist in three places only: the memory of the model process while it draws, the encrypted store in the app's memory, and the browser window while you look at them. They are never written to disk by the app.
+
+- A random 256-bit key is created each time the app starts and is held only in memory. Every picture and preview is sealed with AES-256-GCM, with a fresh random nonce, and decrypted only when the window asks for it.
+- Pictures are sent to the window with `Cache-Control: no-store`, and the app window runs with its own browser profile and the disk cache turned off.
+- The server only answers requests addressed to `127.0.0.1` or `localhost`.
+- When the app closes the key is gone, and so are the pictures. Use Save on an image to put a copy in your downloads folder; that is the only way a picture ever becomes a file.
+- Chats keep their prompts and settings so you can reuse them. After a restart the picture itself shows as cleared.
+
+What this does not cover: the operating system can move any program's memory into its page file or hibernation file, which the app cannot prevent. Turn on full-disk encryption (BitLocker) if that matters to you. Screenshots and files you save yourself are outside the app's control.
+
+Older versions saved pictures in an `images` folder. If the app finds files there it offers to delete them.
+
 ## Where things are stored
 
 Everything lives under one folder, `~/OpenImage` by default:
 
 ```
 models/   downloaded models
-images/   generated pictures
-data/     chats, history, timing data, thumbnails, logs
+data/     chats, prompt history, timing data, logs
 ```
 
 Set `OPEN_IMAGE_HOME` to use a different folder, for example a bigger drive. `OPEN_IMAGE_PORT` changes the port.
@@ -98,7 +112,7 @@ To add a model, add an entry to `catalog.py` and, if it is a new architecture, a
 
 ## Status
 
-Version 0.2. Not done yet: image-to-image and editing, and testing on Linux.
+Version 0.3. Not done yet: image-to-image and editing, and testing on Linux.
 
 ## License
 

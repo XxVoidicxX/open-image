@@ -2,6 +2,8 @@
 
 Anything the libraries print goes to stderr; the real stdout is kept for events only.
 """
+import base64
+import io
 import json
 import os
 import sys
@@ -10,6 +12,17 @@ import traceback
 
 _events = os.fdopen(os.dup(1), "w", buffering=1, encoding="utf-8")
 sys.stdout = sys.stderr
+
+
+def pack(image):
+    """The finished picture and a small preview, as base64 for the pipe. Nothing is written to disk."""
+    full = io.BytesIO()
+    image.save(full, "PNG")
+    small = image.convert("RGB")
+    small.thumbnail((560, 560))
+    thumb = io.BytesIO()
+    small.save(thumb, "JPEG", quality=84)
+    return base64.b64encode(full.getvalue()).decode(), base64.b64encode(thumb.getvalue()).decode()
 
 
 def emit(**event):
@@ -46,8 +59,9 @@ def main():
         try:
             began = time.time()
             image = engine.run(req, on_step)
-            image.save(req["out"])
-            emit(type="done", id=job_id, seconds=round(time.time() - began, 1))
+            full, thumb = pack(image)
+            del image
+            emit(type="done", id=job_id, seconds=round(time.time() - began, 1), full=full, thumb=thumb)
         except guard.ThermalAbort as err:
             emit(type="error", id=job_id, kind="thermal", message=str(err))
         except torch.OutOfMemoryError:

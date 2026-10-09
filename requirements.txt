@@ -3,6 +3,7 @@ uvicorn
 psutil
 nvidia-ml-py
 pillow
+cryptography
 huggingface_hub
 accelerate
 safetensors

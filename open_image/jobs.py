@@ -1,3 +1,4 @@
+import base64
 import json
 import os
 import queue
@@ -11,7 +12,8 @@ from pathlib import Path
 from . import resources, timing
 from .catalog import BY_ID
 from .guard import EXIT_CODE_LOW_RAM
-from .paths import DATA, HOME, IMAGES, THUMBS
+from .paths import DATA, HOME
+from .vault import vault
 
 HISTORY_FILE = DATA / "history.json"
 CHATS_FILE = DATA / "chats.json"
@@ -52,8 +54,8 @@ class Manager:
         for job in _load(HISTORY_FILE, []):
             if job["chat_id"] not in self.chats:
                 continue
-            if job["status"] == "done" and not (IMAGES / Path(job["image"]).name).exists():
-                continue
+            if job["status"] == "done":  # pictures live in memory only, so after a restart the card keeps its prompt but not its image
+                job.update(image=None, expired=True)
             self.jobs[job["id"]] = job
             self.order.append(job["id"])
 
@@ -94,9 +96,8 @@ class Manager:
             self.cancel(job_id)
         with self.lock:
             for job_id in ids:
-                job = self.jobs.pop(job_id, None)
-                if job and job.get("image"):
-                    (IMAGES / Path(job["image"]).name).unlink(missing_ok=True)
+                self.jobs.pop(job_id, None)
+                vault.drop(job_id)
             self.order = [i for i in self.order if i in self.jobs]
             del self.chats[chat_id]
             self._save_chats()
@@ -219,7 +220,7 @@ class Manager:
             return
 
         request = {"id": job["id"], "prompt": job["final_prompt"], "negative": job["final_negative"], "width": job["width"],
-                   "height": job["height"], "steps": job["steps"], "seed": job["seed"], "out": str(IMAGES / (job["id"] + ".png"))}
+                   "height": job["height"], "steps": job["steps"], "seed": job["seed"]}
         self.proc.stdin.write(json.dumps(request) + "\n")
         self.proc.stdin.flush()
 
@@ -238,7 +239,9 @@ class Manager:
                     megapixels = job["width"] * job["height"] / 1e6
                     prep = job["gen_started"] - job["started_at"] if model.overhead_s else None
                     timing.record(model, unit=(time.time() - job["gen_started"]) / (megapixels * job["steps"]), prep=prep, ctx=job.get("ctx"))
-                job.update(status="done", image=f"/img/{job['id']}.png", seconds=round(time.time() - job["started_at"], 1))
+                vault.put(job["id"], "full", base64.b64decode(event["full"]))
+                vault.put(job["id"], "thumb", base64.b64decode(event["thumb"]))
+                job.update(status="done", image=f"/vault/{job['id']}.png", seconds=round(time.time() - job["started_at"], 1))
                 return
             elif kind == "error":
                 if job["id"] in self.cancelled:
@@ -271,14 +274,14 @@ class Manager:
 
     def images(self, model_id=None):
         with self.lock:
-            done = [dict(j) for j in self.jobs.values() if j["status"] == "done" and (not model_id or j["model"] == model_id)]
+            done = [dict(j) for j in self.jobs.values() if j["status"] == "done" and vault.has(j["id"]) and (not model_id or j["model"] == model_id)]
             titles = {c["id"]: c["title"] for c in self.chats.values()}
         done.sort(key=lambda j: j["created"], reverse=True)
         out = []
         for job in done:
             item = self.public(job)
             item["chat_title"] = titles.get(job["chat_id"], "")
-            item["thumb"] = f"/thumb/{job['id']}.jpg"
+            item["thumb"] = f"/vault/{job['id']}.jpg"
             out.append(item)
         return out
 
@@ -289,9 +292,7 @@ class Manager:
                 return False
             self.jobs.pop(job_id)
             self.order.remove(job_id)
-            if job.get("image"):
-                (IMAGES / Path(job["image"]).name).unlink(missing_ok=True)
-            (THUMBS / f"{job_id}.jpg").unlink(missing_ok=True)
+            vault.drop(job_id)
             self._save_jobs()
         return True
 
@@ -322,7 +323,7 @@ class Manager:
         for job_id in order:
             job = jobs[job_id]
             counts[job["chat_id"]] = counts.get(job["chat_id"], 0) + 1
-            done_count += job["status"] == "done"
+            done_count += job["status"] == "done" and vault.has(job_id)
             if job["status"] in LIVE:
                 job["eta_s"] = ahead + self.remaining(job, res)
                 job["jobs_ahead"] = live_count
@@ -336,7 +337,7 @@ class Manager:
             chat["active"] = active.get(chat["id"], 0)
         chats.sort(key=lambda c: c["updated"], reverse=True)
         return {"jobs": shown, "chats": chats, "queue_ahead_s": ahead, "loaded_model": self.model_id, "busy": self.busy, "resources": res,
-                "image_count": done_count}
+                "image_count": done_count, "vault_mb": round(vault.size / 2**20, 1), "vault_full": vault.full}
 
     @staticmethod
     def public(job):
