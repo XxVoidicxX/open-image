@@ -12,18 +12,21 @@ from pathlib import Path
 import uvicorn
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse
+from PIL import Image
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from . import __version__, resources, timing
-from .catalog import ASPECTS, BY_ID, MODEL_LIST, QUALITIES, size_for
+from .catalog import ASPECTS, BY_ID, MODEL_LIST, QUALITIES, folder_size, size_for
+from .installs import Installer
 from .jobs import Manager
-from .paths import DATA, IMAGES
+from .paths import DATA, IMAGES, THUMBS
 
 STATIC = Path(__file__).parent / "static"
 PORT = int(os.environ.get("OPEN_IMAGE_PORT", "7860"))
 
 manager = Manager()
+installer = Installer()
 resources.monitor.busy = lambda: manager.busy
 app = FastAPI(title="Open Image", version=__version__, docs_url=None, redoc_url=None)
 
@@ -43,17 +46,89 @@ class Rename(BaseModel):
     title: str
 
 
+def model_info(m):
+    downloading = installer.downloading(m.id)
+    installed = not downloading and m.installed
+    return {"id": m.id, "name": m.name, "symbol": m.symbol, "hue": m.hue, "blurb": m.blurb, "tags": m.tags, "negative": m.negative,
+            "example": m.example, "available": installed, "uncensored": m.uncensored, "size_gb": m.size_gb,
+            "disk_gb": round(folder_size(m.path) / 2**30, 1) if m.path.exists() else 0, "default_negative": m.default_negative,
+            "install": f"python -m open_image download {m.id}", "download": installer.status(m)}
+
+
 @app.get("/api/models")
 def models():
-    return [{"id": m.id, "name": m.name, "symbol": m.symbol, "hue": m.hue, "blurb": m.blurb, "tags": m.tags, "negative": m.negative,
-             "example": m.example, "available": m.installed, "default_negative": m.default_negative,
-             "install": f"python -m open_image download {m.id}"} for m in MODEL_LIST]
+    return [model_info(m) for m in MODEL_LIST]
+
+
+@app.post("/api/models/{model_id}/install")
+def install_model(model_id: str):
+    model = BY_ID.get(model_id)
+    if not model:
+        raise HTTPException(404, "No such model.")
+    if not installer.downloading(model_id) and model.installed:
+        raise HTTPException(409, "Already installed.")
+    installer.start(model)
+    return {"ok": True}
+
+
+@app.post("/api/models/{model_id}/cancel")
+def cancel_install(model_id: str):
+    installer.cancel(model_id)
+    return {"ok": True}
+
+
+@app.post("/api/models/{model_id}/uninstall")
+def uninstall_model(model_id: str):
+    model = BY_ID.get(model_id)
+    if not model:
+        raise HTTPException(404, "No such model.")
+    if installer.downloading(model_id):
+        raise HTTPException(409, "It is still downloading. Cancel the download first.")
+    if manager.has_live_jobs(model_id):
+        raise HTTPException(409, "A queued or running image is using this model.")
+    if manager.model_id == model_id:
+        manager.stop_worker()
+    try:
+        installer.uninstall(model)
+    except OSError:
+        raise HTTPException(500, "Some files are in use. Close anything using the model and try again.")
+    return {"ok": True}
+
+
+@app.get("/api/images")
+def images(model: str | None = None):
+    return manager.images(model)
+
+
+@app.post("/api/images/{job_id}/delete")
+def delete_image(job_id: str):
+    if not manager.delete_image(job_id):
+        raise HTTPException(404, "No such image.")
+    return {"ok": True}
+
+
+@app.get("/thumb/{name}")
+def thumb(name: str):
+    job_id = Path(name).stem
+    if not job_id.isalnum():
+        raise HTTPException(404)
+    out = THUMBS / f"{job_id}.jpg"
+    if not out.exists():
+        src = IMAGES / f"{job_id}.png"
+        if not src.exists():
+            raise HTTPException(404)
+        with Image.open(src) as im:
+            im = im.convert("RGB")
+            im.thumbnail((560, 560))
+            im.save(out, "JPEG", quality=84)
+    return FileResponse(out, headers={"Cache-Control": "max-age=86400"})
 
 
 @app.get("/api/state")
 def state(chat: str | None = None):
     snap = manager.snapshot(chat)
     snap["version"] = __version__
+    snap["downloads"] = {m.id: st for m in MODEL_LIST if (st := installer.status(m))["state"] != "idle"}
     return snap
 
 
@@ -67,7 +142,7 @@ def estimates(body: dict):
 @app.post("/api/generate")
 def generate(req: Generate):
     model = BY_ID.get(req.model)
-    if not model or not model.installed:
+    if not model or installer.downloading(model.id) or not model.installed:
         raise HTTPException(400, "That model is not installed.")
     prompt = req.prompt.strip()
     if not prompt:

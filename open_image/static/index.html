@@ -195,6 +195,79 @@ details.adv summary:hover,details.adv[open] summary{color:var(--text)}
 .lb.open{display:flex}
 .lb img{max-width:100%;max-height:100%;border-radius:12px;box-shadow:0 20px 80px rgba(0,0,0,.6)}
 
+
+.navbtn{margin:0 14px 8px;display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:12px;border:1px solid var(--line);background:var(--panel);color:var(--muted);font-size:13.5px;transition:all .15s;width:calc(100% - 28px);text-align:left}
+.navbtn:hover{color:var(--text);border-color:var(--line2)}
+.navbtn[aria-current="true"]{color:var(--text);border-color:var(--accent-line);background:var(--accent-soft)}
+.navbtn b{margin-left:auto;font-weight:600;font-variant-numeric:tabular-nums;font-size:12px;color:var(--faint)}
+
+.gallery{flex:1;overflow:auto;padding:20px 24px}
+.gallery[hidden]{display:none}
+.gwrap{max-width:1180px;margin:0 auto}
+.gfilter{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+.gchip{display:inline-flex;align-items:center;gap:7px;padding:4px 12px 4px 5px;border-radius:999px;border:1px solid var(--line);background:var(--panel);color:var(--muted);font-size:12.5px}
+.gchip.all{padding-left:12px}
+.gchip:hover{color:var(--text)}
+.gchip[aria-pressed="true"]{border-color:var(--accent-line);background:var(--accent-soft);color:var(--text)}
+.ggrid{columns:4 230px;column-gap:12px}
+.gcard{position:relative;break-inside:avoid;margin:0 0 12px;border-radius:14px;overflow:hidden;background:var(--panel2);cursor:pointer;border:1px solid var(--line);display:block;width:100%;padding:0;text-align:left}
+.gcard img{display:block;width:100%;height:auto}
+.gcard .ov{position:absolute;inset:auto 0 0 0;padding:28px 10px 9px;background:linear-gradient(transparent,rgba(0,0,0,.8));color:#fff;font-size:12px;opacity:0;transition:opacity .15s;display:flex;gap:8px;align-items:flex-end;line-height:1.35}
+.gcard:hover .ov,.gcard:focus-visible .ov{opacity:1}
+.gcard .ov span{overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.gempty{text-align:center;color:var(--muted);margin-top:12vh}
+.gempty b{display:block;font-size:18px;color:var(--text);margin-bottom:4px}
+
+.modal{position:fixed;inset:0;background:rgba(5,6,10,.7);backdrop-filter:blur(5px);display:none;align-items:center;justify-content:center;z-index:45;padding:24px}
+.modal.open{display:flex}
+.sheet{background:var(--panel);border:1px solid var(--line2);border-radius:20px;box-shadow:0 30px 80px rgba(0,0,0,.55);width:min(780px,100%);max-height:min(780px,92vh);display:flex;flex-direction:column;overflow:hidden;animation:rise .2s ease both}
+.sheet header{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;padding:18px 20px 10px}
+.sheet h2{margin:0;font-size:18px;font-weight:660}
+.sheet header p{margin:2px 0 0;color:var(--muted);font-size:12.5px}
+.tabs{display:flex;gap:6px;padding:0 20px 10px;flex-wrap:wrap}
+.tab{padding:5px 13px;border-radius:999px;border:1px solid var(--line);background:var(--panel2);color:var(--muted);font-size:12.5px}
+.tab:hover{color:var(--text)}
+.tab[aria-selected="true"]{border-color:var(--accent-line);background:var(--accent-soft);color:var(--text)}
+.tab i{font-style:normal;color:var(--faint);margin-left:5px}
+.note2{margin:0 20px 8px;padding:8px 12px;border-radius:10px;font-size:12.5px;border:1px solid rgba(251,191,36,.35);background:rgba(251,191,36,.08);color:#fcd34d}
+@media (prefers-color-scheme: light){.note2{color:#92400e}}
+.mgrlist{overflow:auto;padding:4px 12px 16px;display:flex;flex-direction:column;gap:8px}
+.mrowi{display:flex;gap:12px;padding:12px;border:1px solid var(--line);border-radius:14px;background:var(--panel2);align-items:flex-start}
+.mrowi .mbody{flex:1;min-width:0}
+.mrowi .nm{font-weight:620;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.mrowi .bl{color:var(--muted);font-size:12.5px;margin:3px 0 7px}
+.mrowi .st{font-size:12px;color:var(--muted);margin-top:8px;font-variant-numeric:tabular-nums}
+.mrowi .st.bad{color:var(--bad)}
+.mrowi .side2{display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex:none}
+.mrowi .sz{font-size:12px;color:var(--faint);white-space:nowrap}
+.btn.primary{border-color:var(--accent-line);background:linear-gradient(135deg,rgba(124,92,255,.35),rgba(34,211,238,.18));color:var(--text)}
+.btn.primary:hover{filter:brightness(1.15)}
+.btn.warn{color:#fff;background:var(--bad);border-color:var(--bad)}
+.btn.sm{padding:5px 11px;font-size:12.5px;white-space:nowrap}
+.dlbar{height:6px;border-radius:99px;background:var(--panel);border:1px solid var(--line);overflow:hidden;margin-top:8px}
+.dlbar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--accent),var(--accent2));transition:width .6s ease}
+.dlbar.ind i{width:35%;animation:slide 1.4s ease-in-out infinite}
+
+.detail{width:min(1040px,100%);flex-direction:row;max-height:min(720px,92vh)}
+.detail .pic{flex:1.4;background:#000;display:grid;place-items:center;min-width:0;cursor:zoom-in}
+.detail .pic img{max-width:100%;max-height:min(720px,92vh);display:block;object-fit:contain}
+.detail .info{flex:1;min-width:260px;max-width:380px;padding:18px 18px 16px;overflow:auto;display:flex;flex-direction:column;gap:12px}
+.detail .pr{font-size:14px;line-height:1.5;white-space:pre-wrap;word-break:break-word;background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:10px 12px;max-height:200px;overflow:auto}
+.facts{display:grid;grid-template-columns:auto 1fr;gap:5px 14px;font-size:12.5px}
+.facts span{color:var(--faint)}
+.facts b{font-weight:560;text-align:right;overflow-wrap:anywhere}
+
+.swt{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;letter-spacing:0;text-transform:none;color:var(--muted);cursor:pointer;font-weight:500}
+.mpop footer{padding:8px 12px;border-top:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;gap:10px;color:var(--faint);font-size:12px}
+.mitem.off{opacity:.78}
+.mitem.off .sym-wrap{filter:grayscale(.6)}
+.eta.btn-ish{cursor:pointer;color:var(--text);border-color:var(--accent-line);background:var(--accent-soft)}
+.eta.btn-ish:hover{filter:brightness(1.2)}
+@media (max-width:900px){
+  .detail{flex-direction:column;overflow:auto}
+  .detail .info{max-width:none}
+  .gallery{padding:14px}
+}
 @media (max-width:900px){
   .app{grid-template-columns:1fr}
   .side{position:fixed;inset:0 18% 0 0;z-index:40;transform:translateX(-102%);transition:transform .25s;box-shadow:var(--shadow);min-width:290px}
@@ -214,6 +287,7 @@ details.adv summary:hover,details.adv[open] summary{color:var(--text)}
       <div><h1>Open Image</h1><p id="ver">Runs on this PC</p></div>
     </div>
     <button class="newchat" id="newchat"><svg class="i" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>New chat</button>
+    <button class="navbtn" id="imagesbtn" aria-current="false"><svg class="i" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="3"/><circle cx="9" cy="10" r="1.6"/><path d="M21 16l-5-5-8 8"/></svg>Images<b id="imgcount"></b></button>
     <div class="chats" id="chats" role="list"></div>
     <div class="sys">
       <h3><span>This PC right now</span><span id="gpuname"></span></h3>
@@ -238,7 +312,15 @@ details.adv summary:hover,details.adv[open] summary{color:var(--text)}
 
     <div class="feed" id="feed"><div class="lane" id="lane"></div></div>
 
-    <div class="dock">
+    <section class="gallery" id="gallery" hidden aria-label="All images">
+      <div class="gwrap">
+        <div class="gfilter" id="gfilter"></div>
+        <div class="ggrid" id="ggrid"></div>
+        <div class="gempty" id="gempty" hidden><b>No images yet</b>Everything you make shows up here, from every chat.</div>
+      </div>
+    </section>
+
+    <div class="dock" id="dock">
       <div class="composer">
         <textarea id="prompt" rows="1" placeholder="Describe the image you want…" aria-label="Prompt"></textarea>
         <div class="crow">
@@ -260,7 +342,11 @@ details.adv summary:hover,details.adv[open] summary{color:var(--text)}
           </div>
           <div class="picker">
             <button class="pbtn" id="pbtn" aria-haspopup="listbox" aria-expanded="false" aria-label="Choose model"><span id="pbtn-sym"></span><span class="pn" id="pbtn-name">-</span><svg class="i chev" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg></button>
-            <div class="mpop" id="mpop" role="listbox" aria-label="Models"><header><span>Choose a model</span></header><div class="mlist" id="mlist"></div></div>
+            <div class="mpop" id="mpop" role="listbox" aria-label="Models">
+              <header><span>Choose a model</span><label class="swt" title="Only show models with no built-in content filter"><input type="checkbox" id="onlyunc"> Uncensored only</label></header>
+              <div class="mlist" id="mlist"></div>
+              <footer><span id="mpop-note"></span><button class="btn sm" id="openmgr">Manage models</button></footer>
+            </div>
           </div>
           <button class="send" id="send" aria-label="Generate" disabled><svg viewBox="0 0 24 24"><path d="M12 19V5M5 12l7-7 7 7"/></svg></button>
         </div>
@@ -279,6 +365,26 @@ details.adv summary:hover,details.adv[open] summary{color:var(--text)}
 </div>
 <div class="lb" id="lb" role="dialog" aria-label="Full size image"><img id="lbimg" alt=""></div>
 
+<div class="modal" id="mgr" role="dialog" aria-label="Manage models">
+  <div class="sheet">
+    <header><div><h2>Models</h2><p id="mgr-sub"></p></div><button class="btn" id="mgr-close">Close</button></header>
+    <div class="tabs" id="mgr-tabs" role="tablist">
+      <button class="tab" role="tab" data-tab="all">All<i id="n-all"></i></button>
+      <button class="tab" role="tab" data-tab="installed">Installed<i id="n-installed"></i></button>
+      <button class="tab" role="tab" data-tab="unc">Uncensored<i id="n-unc"></i></button>
+    </div>
+    <div id="mgr-note"></div>
+    <div class="mgrlist" id="mgr-list"></div>
+  </div>
+</div>
+
+<div class="modal" id="detail" role="dialog" aria-label="Image details">
+  <div class="sheet detail">
+    <div class="pic" id="d-pic"></div>
+    <div class="info" id="d-info"></div>
+  </div>
+</div>
+
 <script>
 const $ = s => document.querySelector(s);
 const SPARK = '<svg viewBox="0 0 32 32"><path d="M16 4l2.6 7.4L26 14l-7.4 2.6L16 24l-2.6-7.4L6 14l7.4-2.6z"/></svg>';
@@ -293,7 +399,7 @@ const ICON = {
 const ASPECT_LABEL = {square:"Square", wide:"Wallpaper 16:9", tall:"Phone 9:16"};
 const QUALITY_LABEL = {fast:"Fast", balanced:"Balanced", best:"Best"};
 const ACTIVE = ["queued","loading","encoding","generating"];
-const ST = { models:[], sel:null, chat:null, aspect:"square", quality:"balanced", est:{}, state:null, fetchedAt:0, editing:false, chatSig:"" };
+const ST = { view:"chat", onlyUnc:false, mgrTab:"all", images:[], imgFilter:"", imgCount:-1, mgrSig:"", models:[], sel:null, chat:null, aspect:"square", quality:"balanced", est:{}, state:null, fetchedAt:0, editing:false, chatSig:"" };
 
 function fmt(s, round){
   s = Math.max(0, s);
@@ -336,7 +442,7 @@ function groupOf(t){
 function renderChats(force){
   if (!ST.state || ST.editing) return;
   const chats = ST.state.chats;
-  const sig = JSON.stringify([ST.chat, chats.map(c => [c.id, c.title, c.model, c.active, groupOf(c.updated), c.count])]) + ST.models.length;
+  const sig = JSON.stringify([ST.view, ST.chat, chats.map(c => [c.id, c.title, c.model, c.active, groupOf(c.updated), c.count])]) + ST.models.length;
   if (!force && sig === ST.chatSig) return;
   ST.chatSig = sig;
   const box = $("#chats"); const keepScroll = box.scrollTop; box.textContent = "";
@@ -365,7 +471,7 @@ function chatItem(c){
     if (ST.chat === c.id) newChat(true);
     await poll();
   });
-  const el = h("div", {class:"chat", role:"listitem", "aria-current": String(c.id === ST.chat), tabindex:"0", "data-id":c.id, title:c.title,
+  const el = h("div", {class:"chat", role:"listitem", "aria-current": String(ST.view === "chat" && c.id === ST.chat), tabindex:"0", "data-id":c.id, title:c.title,
       onclick: () => switchChat(c.id), onkeydown: e => { if (e.key === "Enter" && e.target === el) switchChat(c.id); }},
     sym(c.model),
     h("span", {class:"ctitle"}, c.title),
@@ -394,6 +500,7 @@ function startRename(el, c){
   inp.addEventListener("click", e => e.stopPropagation());
 }
 function renameTitle(){
+  if (ST.view !== "chat") return;
   const c = curChat(); if (!c) return;
   const b = $("#cur-title"); ST.editing = true;
   const inp = h("input", {value:c.title, maxlength:"80", "aria-label":"Chat name"});
@@ -413,14 +520,15 @@ function renameTitle(){
 }
 function setChat(id){ ST.chat = id; try { id ? localStorage.setItem("openimage.chat", id) : localStorage.removeItem("openimage.chat"); } catch(e){} }
 function newChat(silent){
-  setChat(null); $("#lane").textContent = ""; $("#side").classList.remove("open");
+  setView("chat"); setChat(null); $("#lane").textContent = ""; $("#side").classList.remove("open");
   if (ST.state) ST.state.jobs = [];
   renderChats(true); renderEmpty(); refreshHeader();
   if (!silent){ $("#prompt").focus(); poll(); }
 }
 function switchChat(id){
   $("#side").classList.remove("open");
-  if (id === ST.chat) return;
+  if (id === ST.chat){ if (ST.view !== "chat") setView("chat"); return; }
+  setView("chat");
   setChat(id); $("#lane").textContent = "";
   if (ST.state) ST.state.jobs = [];
   const c = ST.state && ST.state.chats.find(x => x.id === id);
@@ -428,19 +536,31 @@ function switchChat(id){
   renderChats(true); refreshHeader(); poll(); $("#prompt").focus();
 }
 
+const tagClass = t => /uncensored/i.test(t) ? "hot" : /fast|lightest/i.test(t) ? "fast" : /slow/i.test(t) ? "slow" : "";
+const gb = n => n >= 10 ? n.toFixed(0) : n.toFixed(1);
+const active = d => d && (d.state === "checking" || d.state === "downloading");
+
 function renderModels(){
   const box = $("#mlist"); box.textContent = "";
-  for (const m of ST.models){
-    const e = ST.est[m.id];
-    const loaded = ST.state && ST.state.loaded_model === m.id;
-    box.append(h("button", {class:"mitem", role:"option", "aria-checked": String(m.id === ST.sel), disabled: !m.available, "data-id": m.id, onclick: () => { selectModel(m.id); closePicker(); $("#prompt").focus(); }},
+  const all = ST.models.filter(m => !ST.onlyUnc || m.uncensored);
+  const list = [...all.filter(m => m.available), ...all.filter(m => !m.available)];
+  $("#mpop-note").textContent = ST.onlyUnc ? `${all.length} uncensored model${all.length === 1 ? "" : "s"}` : "";
+  if (!list.length) box.append(h("div", {class:"mblurb", style:"padding:14px"}, "No models match."));
+  for (const m of list){
+    const e = ST.est[m.id], loaded = ST.state && ST.state.loaded_model === m.id, off = !m.available;
+    const dl = active(m.download) ? m.download : null;
+    const right = !off ? h("div", {class:"eta", "data-eta": m.id}, e ? "≈ " + fmt(e.total_s, true) : "…")
+      : dl ? h("div", {class:"eta", "data-pk": m.id}, dl.state === "checking" ? "Starting…" : Math.round((dl.progress || 0) * 100) + "%")
+      : h("button", {class:"eta btn-ish", title:"Download this model", onclick: ev => { ev.stopPropagation(); startInstall(m.id); }}, `Install · ${gb(m.size_gb)} GB`);
+    const item = h("div", {class:"mitem" + (off ? " off" : ""), role:"option", tabindex:"0", "aria-checked": String(m.id === ST.sel), "data-id": m.id,
+        onclick: () => { if (off) return; selectModel(m.id); closePicker(); $("#prompt").focus(); },
+        onkeydown: ev => { if (ev.key === "Enter" || ev.key === " "){ ev.preventDefault(); item.click(); } }},
       sym(m.id, true),
       h("div", {class:"mbody"},
-        h("div", {class:"mrow"},
-          h("div", {class:"mname"}, m.name, loaded ? h("span", {class:"dot", title:"Loaded in memory, starts instantly"}) : null),
-          h("div", {class:"eta", "data-eta": m.id}, m.available ? (e ? "≈ " + fmt(e.total_s, true) : "…") : "Not installed")),
-        h("div", {class:"mblurb"}, m.available ? m.blurb : `Not downloaded yet. Run: ${m.install}`),
-        h("div", {class:"tags"}, m.tags.map(t => h("span", {class:"tag " + (/filter/i.test(t) ? "hot" : /fast|lightest/i.test(t) ? "fast" : /slow/i.test(t) ? "slow" : "")}, t))))));
+        h("div", {class:"mrow"}, h("div", {class:"mname"}, m.name, loaded ? h("span", {class:"dot", title:"Loaded in memory, starts instantly"}) : null), right),
+        h("div", {class:"mblurb"}, m.blurb),
+        h("div", {class:"tags"}, m.tags.map(t => h("span", {class:"tag " + tagClass(t)}, t)))));
+    box.append(item);
   }
 }
 function updateEtas(){
@@ -462,6 +582,8 @@ function openPicker(){
 }
 function closePicker(){ $("#mpop").classList.remove("open"); $("#pbtn").setAttribute("aria-expanded", "false"); }
 function selectModel(id){
+  const wanted = modelById(id);
+  if (!wanted || !wanted.available){ const first = ST.models.find(m => m.available); if (!first) return; id = first.id; }
   ST.sel = id; try { localStorage.setItem("openimage.model", id); } catch(e){}
   document.querySelectorAll(".mitem").forEach(c => c.setAttribute("aria-checked", String(c.dataset.id === id)));
   const m = cur();
@@ -470,6 +592,12 @@ function selectModel(id){
   refreshHeader(); refreshPill(); renderEmpty();
 }
 function refreshHeader(){
+  if (ST.view === "images"){
+    const n = ST.images.length, chats = new Set(ST.images.map(i => i.chat_id)).size;
+    const t0 = $("#cur-title"); if (t0 && t0.tagName === "B") t0.textContent = "All images";
+    $("#cur-sub").textContent = n ? `${n} image${n === 1 ? "" : "s"} from ${chats} chat${chats === 1 ? "" : "s"}` : "Nothing here yet";
+    return;
+  }
   const c = curChat(), m = cur();
   const t = $("#cur-title"); if (t && t.tagName === "B" && !ST.editing) t.textContent = c ? c.title : "New chat";
   if (!m) return;
@@ -495,7 +623,7 @@ function refreshPill(){
   tip.append(h("div", {class:"row", style:"color:var(--text);font-weight:600;margin-bottom:4px"}, h("span", {}, "Estimated wait"), h("b", {}, fmt(e.total_s + ahead, true))));
   rows.forEach(([a,b]) => tip.append(h("div", {class:"row"}, h("span", {}, a), h("b", {}, b))));
   e.notes.forEach(n => tip.append(h("div", {class:"note"}, n)));
-  if (!e.notes.length) tip.append(h("div", {class:"row", style:"margin-top:6px;border-top:1px solid var(--line);padding-top:6px"}, h("span", {}, "Based on this PC's recent speed")));
+  tip.append(h("div", {class:"row", style:"margin-top:6px;border-top:1px solid var(--line);padding-top:6px"}, h("span", {}, e.basis)));
 }
 
 function renderSystem(){
@@ -653,10 +781,164 @@ async function poll(){
     ST.state = st; ST.fetchedAt = Date.now()/1000;
     if (st.version) $("#ver").textContent = "v" + st.version + " · runs on this PC";
     if (ST.chat && !st.chats.find(c => c.id === ST.chat)){ newChat(true); }
-    renderJobs(); renderChats(); renderSystem(); updateEtas(); refreshPill(); refreshHeader();
+    renderJobs(); renderChats(); renderSystem(); updateEtas(); refreshPill(); refreshHeader(); afterPoll(st);
   } catch(e){}
-  const active = ST.state && (ST.state.jobs.some(j => ACTIVE.indexOf(j.status) >= 0) || ST.state.chats.some(c => c.active));
-  timer = setTimeout(poll, active ? 700 : 3000);
+  const busy = ST.state && (ST.state.jobs.some(j => ACTIVE.indexOf(j.status) >= 0) || ST.state.chats.some(c => c.active));
+  const loading = ST.models.some(m => active(m.download));
+  timer = setTimeout(poll, busy ? 700 : loading ? 1000 : 3000);
+}
+
+
+function setView(v){
+  ST.view = v;
+  $("#feed").hidden = v !== "chat"; $("#dock").hidden = v !== "chat"; $("#gallery").hidden = v !== "images";
+  $("#imagesbtn").setAttribute("aria-current", String(v === "images"));
+  $("#side").classList.remove("open");
+  if (v === "images") loadImages();
+  renderChats(true); refreshHeader();
+}
+async function loadImages(){
+  try { ST.images = await api("/api/images"); } catch(e){ return; }
+  ST.imgCount = ST.state ? ST.state.image_count : ST.images.length;
+  if (ST.imgFilter && !ST.images.some(i => i.model === ST.imgFilter)) ST.imgFilter = "";
+  renderGallery(); refreshHeader();
+}
+function renderGallery(){
+  const f = $("#gfilter"); f.textContent = "";
+  const counts = {}; ST.images.forEach(i => counts[i.model] = (counts[i.model] || 0) + 1);
+  f.append(h("button", {class:"gchip all", "aria-pressed": String(!ST.imgFilter), onclick: () => { ST.imgFilter = ""; renderGallery(); }}, `All · ${ST.images.length}`));
+  for (const m of ST.models) if (counts[m.id]) f.append(h("button", {class:"gchip", "aria-pressed": String(ST.imgFilter === m.id), onclick: () => { ST.imgFilter = m.id; renderGallery(); }}, sym(m.id), `${m.name} · ${counts[m.id]}`));
+  const items = ST.images.filter(i => !ST.imgFilter || i.model === ST.imgFilter);
+  const g = $("#ggrid"); g.textContent = "";
+  $("#gempty").hidden = ST.images.length > 0; f.hidden = !ST.images.length;
+  for (const it of items){
+    g.append(h("button", {class:"gcard", "aria-label": it.prompt, onclick: () => openDetail(it)},
+      h("img", {src:it.thumb, alt:it.prompt, loading:"lazy", width:it.width, height:it.height}),
+      h("div", {class:"ov"}, sym(it.model), h("span", {}, it.prompt))));
+  }
+}
+function openDetail(it){
+  const m = modelById(it.model);
+  $("#d-pic").replaceChildren(h("img", {src:it.image, alt:it.prompt}));
+  $("#d-pic").onclick = () => openLb(it.image);
+  const when = new Date(it.created * 1000).toLocaleString([], {dateStyle:"medium", timeStyle:"short"});
+  const del = h("button", {class:"btn", html:ICON.trash + "Delete"});
+  let t = null;
+  del.addEventListener("click", async () => {
+    if (!del.classList.contains("warn")){ del.classList.add("warn"); del.textContent = "Click again to delete"; t = setTimeout(() => { del.classList.remove("warn"); del.innerHTML = ICON.trash + "Delete"; }, 3000); return; }
+    clearTimeout(t);
+    try { await api(`/api/images/${it.id}/delete`, {}); } catch(e){ alert(e.message); return; }
+    closeDetail(); await loadImages(); poll();
+  });
+  const copy = h("button", {class:"btn", onclick: async () => { try { await navigator.clipboard.writeText(it.prompt); copy.textContent = "Copied"; setTimeout(() => copy.textContent = "Copy prompt", 1500); } catch(e){} }}, "Copy prompt");
+  $("#d-info").replaceChildren(
+    h("div", {style:"display:flex;align-items:center;gap:10px"}, sym(it.model, true), h("div", {}, h("b", {}, it.model_name), h("div", {style:"font-size:12px;color:var(--muted)"}, when))),
+    h("div", {class:"pr"}, it.prompt),
+    it.negative ? h("div", {style:"font-size:12.5px;color:var(--muted)"}, "Avoid: " + it.negative) : null,
+    h("div", {class:"facts"},
+      h("span", {}, "Size"), h("b", {}, `${it.width}×${it.height}`),
+      h("span", {}, "Steps"), h("b", {}, String(it.steps)),
+      h("span", {}, "Seed"), h("b", {}, String(it.seed)),
+      h("span", {}, "Took"), h("b", {}, fmt(it.seconds || 0)),
+      h("span", {}, "Chat"), h("b", {}, it.chat_title || "-")),
+    h("div", {class:"actions", style:"margin-top:auto"},
+      h("button", {class:"btn", html:ICON.full + "Open chat", onclick: () => { closeDetail(); switchChat(it.chat_id); setView("chat"); }}),
+      h("a", {class:"btn", href:it.image, download:`${it.model}-${it.seed}.png`, html:ICON.dl + "Save"}),
+      h("button", {class:"btn", html:ICON.reuse + "Reuse settings", onclick: () => { closeDetail(); if (it.chat_id !== ST.chat) switchChat(it.chat_id); setView("chat"); reuse(it); }}),
+      copy, del));
+  $("#detail").classList.add("open");
+}
+function closeDetail(){ $("#detail").classList.remove("open"); }
+
+async function startInstall(id){
+  const m = modelById(id); if (!m) return;
+  m.download = {state:"checking"}; renderModels(); renderMgr(true);
+  try { await api(`/api/models/${id}/install`, {}); } catch(e){ alert(e.message); await refreshModels(); }
+  poll();
+}
+async function cancelInstall(id){ try { await api(`/api/models/${id}/cancel`, {}); } catch(e){} await refreshModels(); }
+async function uninstall(id){
+  try { await api(`/api/models/${id}/uninstall`, {}); } catch(e){ alert(e.message); }
+  await refreshModels();
+}
+async function refreshModels(){
+  try { ST.models = await api("/api/models"); } catch(e){ return; }
+  if (!cur() || !cur().available){ const f = ST.models.find(m => m.available); if (f) selectModel(f.id); }
+  renderModels(); renderMgr(true); updateEtas(); loadEstimates();
+  const c = $("#pbtn-name"); if (cur()) c.textContent = cur().name;
+}
+function openMgr(tab){ if (tab) ST.mgrTab = tab; closePicker(); $("#mgr").classList.add("open"); renderMgr(true); }
+function closeMgr(){ $("#mgr").classList.remove("open"); }
+function dlText(d){
+  if (d.state === "checking") return "Checking the download size…";
+  const pct = Math.round((d.progress || 0) * 100);
+  const bits = [`${pct}%`, `${gb((d.bytes || 0) / 2**30)} of ${gb(d.total / 2**30)} GB`];
+  if (d.speed_bps > 0) bits.push(`${(d.speed_bps / 1048576).toFixed(0)} MB/s`);
+  if (d.eta_s != null) bits.push(`${fmt(d.eta_s, true)} left`);
+  return bits.join(" · ");
+}
+function renderMgr(force){
+  if (!$("#mgr").classList.contains("open")) return;
+  const free = ST.state && ST.state.resources.disk_free_gb;
+  const used = ST.models.reduce((a, m) => a + (m.disk_gb || 0), 0);
+  $("#mgr-sub").textContent = `Using ${gb(used)} GB for models${free != null ? ` · ${gb(free)} GB free on this drive` : ""}`;
+  const count = {all: ST.models.length, installed: ST.models.filter(m => m.available).length, unc: ST.models.filter(m => m.uncensored).length};
+  for (const k of Object.keys(count)) $("#n-" + k).textContent = count[k];
+  document.querySelectorAll("#mgr-tabs .tab").forEach(b => b.setAttribute("aria-selected", String(b.dataset.tab === ST.mgrTab)));
+  const list = ST.models.filter(m => ST.mgrTab === "installed" ? m.available : ST.mgrTab === "unc" ? m.uncensored : true);
+  const sig = ST.mgrTab + "|" + list.map(m => [m.id, m.available, m.download && m.download.state].join(":")).join(",");
+  if (!force && sig === ST.mgrSig){
+    for (const m of list){ const d = m.download; const row = document.querySelector(`[data-mrow="${m.id}"]`); if (!row || !active(d)) continue;
+      row.querySelector("[data-dltext]").textContent = dlText(d);
+      const bar = row.querySelector(".dlbar"); bar.classList.toggle("ind", d.state === "checking"); bar.firstChild.style.width = Math.round((d.progress || 0) * 100) + "%"; }
+    return;
+  }
+  ST.mgrSig = sig;
+  $("#mgr-note").replaceChildren(ST.mgrTab === "unc" ? h("div", {class:"note2"}, "These models have no built-in content filter. What you make with them is up to you, and each model has its own license.") : "");
+  const box = $("#mgr-list"); const keep = box.scrollTop; box.textContent = "";
+  for (const m of list) box.append(mgrRow(m));
+  box.scrollTop = keep;
+}
+function mgrRow(m){
+  const d = m.download || {state:"idle"};
+  let action, status = null;
+  if (active(d)){
+    action = h("button", {class:"btn sm", onclick: () => cancelInstall(m.id)}, "Cancel");
+    status = [h("div", {class:"dlbar" + (d.state === "checking" ? " ind" : "")}, h("i", {style:`width:${Math.round((d.progress || 0) * 100)}%`})), h("div", {class:"st", "data-dltext":""}, dlText(d))];
+  } else if (m.available){
+    const b = h("button", {class:"btn sm", html:ICON.trash + "Uninstall"}); let t = null;
+    b.addEventListener("click", () => {
+      if (!b.classList.contains("warn")){ b.classList.add("warn"); b.textContent = `Free ${gb(m.disk_gb)} GB?`; t = setTimeout(() => { b.classList.remove("warn"); b.innerHTML = ICON.trash + "Uninstall"; }, 3000); return; }
+      clearTimeout(t); b.disabled = true; b.textContent = "Removing…"; uninstall(m.id);
+    });
+    action = b;
+    status = h("div", {class:"st"}, `Installed · ${gb(m.disk_gb)} GB on disk`);
+  } else {
+    action = h("button", {class:"btn sm primary", onclick: () => startInstall(m.id)}, d.state === "error" ? "Retry" : "Install");
+    status = d.state === "error" ? h("div", {class:"st bad"}, d.error) : h("div", {class:"st"}, m.disk_gb > 0.1 ? `Partly downloaded (${gb(m.disk_gb)} GB). Install resumes it.` : "Not installed");
+  }
+  return h("div", {class:"mrowi", "data-mrow": m.id},
+    sym(m.id, true),
+    h("div", {class:"mbody"},
+      h("div", {class:"nm"}, m.name, m.available && ST.sel === m.id ? h("span", {class:"tag"}, "In use") : null),
+      h("div", {class:"bl"}, m.blurb),
+      h("div", {class:"tags"}, m.tags.map(t => h("span", {class:"tag " + tagClass(t)}, t))),
+      status),
+    h("div", {class:"side2"}, action,
+      !m.available && !active(d) && m.disk_gb > 0.1 ? h("button", {class:"link", onclick: () => uninstall(m.id)}, "Discard partial download") : null,
+      h("div", {class:"sz"}, `${gb(m.size_gb)} GB download`)));
+}
+function afterPoll(st){
+  const downloads = st.downloads || {};
+  let finished = false;
+  for (const m of ST.models){
+    const was = active(m.download), now = downloads[m.id] || {state:"idle"};
+    m.download = now;
+    if (was && !active(now) && now.state === "idle") finished = true;
+  }
+  if (finished) refreshModels(); else { renderMgr(); const picked = document.querySelectorAll("[data-pk]"); picked.forEach(el => { const m = modelById(el.dataset.pk); if (m && active(m.download)) el.textContent = m.download.state === "checking" ? "Starting…" : Math.round((m.download.progress || 0) * 100) + "%"; }); }
+  const n = st.image_count; $("#imgcount").textContent = n || "";
+  if (ST.view === "images" && ST.imgCount !== n) loadImages();
 }
 
 async function boot(){
@@ -676,15 +958,23 @@ async function boot(){
   $("#prompt").addEventListener("keydown", e => { if (e.key === "Enter" && !e.shiftKey){ e.preventDefault(); if (!$("#send").disabled) send(); } });
   $("#send").addEventListener("click", send);
   $("#newchat").addEventListener("click", () => newChat());
+  $("#imagesbtn").addEventListener("click", () => setView("images"));
+  $("#openmgr").addEventListener("click", () => openMgr());
+  $("#mgr-close").addEventListener("click", closeMgr);
+  $("#mgr").addEventListener("click", e => { if (e.target.id === "mgr") closeMgr(); });
+  $("#detail").addEventListener("click", e => { if (e.target.id === "detail") closeDetail(); });
+  document.querySelectorAll("#mgr-tabs .tab").forEach(b => b.addEventListener("click", () => { ST.mgrTab = b.dataset.tab; renderMgr(true); }));
+  ST.onlyUnc = (ls("openimage.onlyunc") === "1"); $("#onlyunc").checked = ST.onlyUnc;
+  $("#onlyunc").addEventListener("change", e => { ST.onlyUnc = e.target.checked; try { localStorage.setItem("openimage.onlyunc", ST.onlyUnc ? "1" : "0"); } catch(x){} renderModels(); });
   $("#menu").addEventListener("click", () => $("#side").classList.toggle("open"));
   $("#cur-title").addEventListener("click", renameTitle);
   $("#pbtn").addEventListener("click", e => { e.stopPropagation(); $("#mpop").classList.contains("open") ? closePicker() : openPicker(); });
   document.addEventListener("click", e => { if (!e.target.closest(".picker")) closePicker(); });
   document.addEventListener("keydown", e => {
-    if (e.key === "Escape"){ closePicker(); $("#lb").classList.remove("open"); }
+    if (e.key === "Escape"){ closePicker(); $("#lb").classList.remove("open"); closeMgr(); closeDetail(); }
     if ($("#mpop").classList.contains("open") && (e.key === "ArrowDown" || e.key === "ArrowUp")){
       e.preventDefault();
-      const items = [...document.querySelectorAll("#mlist .mitem:not([disabled])")]; const i = items.indexOf(document.activeElement);
+      const items = [...document.querySelectorAll("#mlist .mitem:not(.off)")]; const i = items.indexOf(document.activeElement);
       items[(i + (e.key === "ArrowDown" ? 1 : -1) + items.length) % items.length].focus();
     }
   });

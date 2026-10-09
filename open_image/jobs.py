@@ -11,7 +11,7 @@ from pathlib import Path
 from . import resources, timing
 from .catalog import BY_ID
 from .guard import EXIT_CODE_LOW_RAM
-from .paths import DATA, HOME, IMAGES
+from .paths import DATA, HOME, IMAGES, THUMBS
 
 HISTORY_FILE = DATA / "history.json"
 CHATS_FILE = DATA / "chats.json"
@@ -230,12 +230,14 @@ class Manager:
                 job["status"] = event["phase"]
                 if event["phase"] == "generating":
                     job["gen_started"] = time.time()
+                    job["ctx"] = timing.context()
             elif kind == "progress":
                 job["step"] = event["step"]
             elif kind == "done":
                 if "gen_started" in job:
                     megapixels = job["width"] * job["height"] / 1e6
-                    timing.record(model, unit=(time.time() - job["gen_started"]) / (megapixels * job["steps"]))
+                    prep = job["gen_started"] - job["started_at"] if model.overhead_s else None
+                    timing.record(model, unit=(time.time() - job["gen_started"]) / (megapixels * job["steps"]), prep=prep, ctx=job.get("ctx"))
                 job.update(status="done", image=f"/img/{job['id']}.png", seconds=round(time.time() - job["started_at"], 1))
                 return
             elif kind == "error":
@@ -261,19 +263,52 @@ class Manager:
             error = f"The model process stopped unexpectedly (exit code {code}). Details are in {LOG_FILE}."
         job.update(status="error", error=error)
 
+    # models and images
+
+    def has_live_jobs(self, model_id):
+        with self.lock:
+            return any(j["model"] == model_id and j["status"] in LIVE for j in self.jobs.values())
+
+    def images(self, model_id=None):
+        with self.lock:
+            done = [dict(j) for j in self.jobs.values() if j["status"] == "done" and (not model_id or j["model"] == model_id)]
+            titles = {c["id"]: c["title"] for c in self.chats.values()}
+        done.sort(key=lambda j: j["created"], reverse=True)
+        out = []
+        for job in done:
+            item = self.public(job)
+            item["chat_title"] = titles.get(job["chat_id"], "")
+            item["thumb"] = f"/thumb/{job['id']}.jpg"
+            out.append(item)
+        return out
+
+    def delete_image(self, job_id):
+        with self.lock:
+            job = self.jobs.get(job_id)
+            if not job or job["status"] not in FINISHED:
+                return False
+            self.jobs.pop(job_id)
+            self.order.remove(job_id)
+            if job.get("image"):
+                (IMAGES / Path(job["image"]).name).unlink(missing_ok=True)
+            (THUMBS / f"{job_id}.jpg").unlink(missing_ok=True)
+            self._save_jobs()
+        return True
+
     # reading state for the UI
 
     def remaining(self, job, res):
         """Seconds left for a queued or running job."""
         model = BY_ID[job["model"]]
         factor, _ = resources.monitor.slowdown(res, model.need_ram)
-        per_step = timing.unit_cost(model) * (job["width"] * job["height"] / 1e6) * factor
+        ctx = timing.context(res)
+        per_step = timing.unit_cost(model, ctx, factor) * (job["width"] * job["height"] / 1e6)
         if job["status"] == "generating":
             done = job.get("step", 0)
             if done >= 2 and job.get("gen_started"):
                 per_step = (time.time() - job["gen_started"]) / done
             return max((job["steps"] - done) * per_step, 1.0) + 2
-        load = (timing.load_cost(model) if self.model_id != model.id else 0) + model.overhead_s * factor
+        load = (timing.load_cost(model, ctx) if self.model_id != model.id else 0) + timing.prep_cost(model, ctx, factor)
         spent = time.time() - job.get("started_at", time.time())
         return max(load - spent, 3.0) + per_step * job["steps"] + 2
 
@@ -283,10 +318,11 @@ class Manager:
             order = list(self.order)
             jobs = {i: dict(self.jobs[i]) for i in order}
             chats = [dict(c) for c in self.chats.values()]
-        shown, ahead, live_count, active, counts = [], 0.0, 0, {}, {}
+        shown, ahead, live_count, active, counts, done_count = [], 0.0, 0, {}, {}, 0
         for job_id in order:
             job = jobs[job_id]
             counts[job["chat_id"]] = counts.get(job["chat_id"], 0) + 1
+            done_count += job["status"] == "done"
             if job["status"] in LIVE:
                 job["eta_s"] = ahead + self.remaining(job, res)
                 job["jobs_ahead"] = live_count
@@ -299,7 +335,8 @@ class Manager:
             chat["count"] = counts.get(chat["id"], 0)
             chat["active"] = active.get(chat["id"], 0)
         chats.sort(key=lambda c: c["updated"], reverse=True)
-        return {"jobs": shown, "chats": chats, "queue_ahead_s": ahead, "loaded_model": self.model_id, "busy": self.busy, "resources": res}
+        return {"jobs": shown, "chats": chats, "queue_ahead_s": ahead, "loaded_model": self.model_id, "busy": self.busy, "resources": res,
+                "image_count": done_count}
 
     @staticmethod
     def public(job):
