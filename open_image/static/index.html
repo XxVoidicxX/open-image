@@ -267,6 +267,42 @@ details.adv summary:hover,details.adv[open] summary{color:var(--text)}
 .mitem.off .sym-wrap{filter:grayscale(.6)}
 .eta.btn-ish{cursor:pointer;color:var(--text);border-color:var(--accent-line);background:var(--accent-soft)}
 .eta.btn-ish:hover{filter:brightness(1.2)}
+.lockic{width:22px;height:22px;border-radius:7px;flex:none;display:grid;place-items:center;background:var(--panel2);border:1px solid var(--line2);color:var(--muted)}
+.lockic svg{width:13px;height:13px}
+.lockic.open{color:var(--ok);border-color:rgba(52,211,153,.45)}
+.fico{display:inline-grid;place-items:center;margin-left:4px}
+.gchip.add{border-style:dashed}
+.pinsheet{width:min(430px,100%);padding:22px}
+.pinsheet h2{margin:0 0 4px;font-size:18px}
+.pinsheet p{margin:0 0 14px;color:var(--muted);font-size:13px;line-height:1.5}
+.pinsheet .fld{display:flex;flex-direction:column;gap:5px;margin-bottom:10px}
+.pinsheet label{font-size:12px;color:var(--muted)}
+.pinsheet input{background:var(--panel2);border:1px solid var(--line);border-radius:10px;color:var(--text);padding:9px 11px;font:inherit;font-size:15px;outline:0;width:100%}
+.pinsheet input:focus{border-color:var(--accent-line)}
+.pinsheet .err{color:var(--bad);font-size:12.5px;min-height:18px;margin:0 0 6px}
+.pinsheet .row{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}
+.pinsheet .stack{display:flex;flex-direction:column;gap:8px;margin-top:6px}
+.pinsheet .stack .btn{text-align:left}
+.pinsheet .sect{margin:14px 0 6px;font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--faint)}
+.gate{position:fixed;inset:0;z-index:70;background:radial-gradient(900px 500px at 50% 0%,rgba(124,92,255,.18),transparent 70%),var(--bg);display:none;align-items:center;justify-content:center;padding:24px}
+.gate.open{display:flex}
+.gate .pinsheet{border:1px solid var(--line2);background:var(--panel);border-radius:20px;box-shadow:var(--shadow)}
+.lockpanel{max-width:380px;margin:10vh auto 0;text-align:center}
+.lockpanel .big{width:56px;height:56px;border-radius:18px;margin:0 auto 14px;display:grid;place-items:center;background:var(--accent-soft);border:1px solid var(--accent-line);color:var(--text)}
+.lockpanel .big svg{width:26px;height:26px}
+.lockpanel h2{margin:0 0 4px;font-size:20px}
+.lockpanel p{margin:0 0 14px;color:var(--muted);font-size:13px}
+.lockpanel input{width:100%;background:var(--panel2);border:1px solid var(--line);border-radius:12px;color:var(--text);padding:11px 13px;font:inherit;font-size:16px;text-align:center;letter-spacing:.2em;outline:0;margin-bottom:8px}
+.lockpanel input:focus{border-color:var(--accent-line)}
+.lockpanel .err{color:var(--bad);font-size:12.5px;min-height:18px;margin-bottom:6px}
+.menu{position:fixed;z-index:90;min-width:200px;background:var(--panel);border:1px solid var(--line2);border-radius:12px;box-shadow:0 18px 50px rgba(0,0,0,.5);padding:5px}
+.menu button{display:flex;gap:9px;align-items:center;width:100%;text-align:left;padding:8px 10px;border-radius:8px;color:var(--text);font-size:13px;background:none;border:0}
+.menu button:hover{background:var(--panel2)}
+.menu button.dng{color:var(--bad)}
+.menu hr{border:0;border-top:1px solid var(--line);margin:4px 2px}
+.gfolders{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.gtool{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 14px}
+.link.priv{margin:0 4px 10px;font-size:11.5px;text-align:left}
 @media (max-width:900px){
   .detail{flex-direction:column;overflow:auto}
   .detail .info{max-width:none}
@@ -295,6 +331,7 @@ details.adv summary:hover,details.adv[open] summary{color:var(--text)}
     <div class="chats" id="chats" role="list"></div>
     <div id="leftbanner"></div>
     <div class="vnote" id="vnote" title="Pictures are encrypted with a key made when the app started and are never written to disk. They go away when the app closes unless you save them."><svg class="i" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 018 0v3"/></svg><span id="vtext">Pictures stay in memory only</span></div>
+    <button class="link priv" id="privbtn">Privacy &amp; locks</button>
     <div class="sys">
       <h3><span>This PC right now</span><span id="gpuname"></span></h3>
       <div class="sgrid">
@@ -313,13 +350,18 @@ details.adv summary:hover,details.adv[open] summary{color:var(--text)}
         <button class="btn menu-btn" id="menu" aria-label="Show chats">Chats</button>
         <div class="who" id="who"><b id="cur-title" title="Click to rename">New chat</b><span id="cur-sub">-</span></div>
       </div>
-      <button class="btn" id="unload" title="Free the GPU and memory used by the loaded model">Free memory</button>
+      <div style="display:flex;gap:8px;align-items:center">
+        <button class="btn" id="lockbtn" hidden></button>
+        <button class="btn" id="unload" title="Free the GPU and memory used by the loaded model">Free memory</button>
+      </div>
     </div>
 
     <div class="feed" id="feed"><div class="lane" id="lane"></div></div>
 
     <section class="gallery" id="gallery" hidden aria-label="All images">
       <div class="gwrap">
+        <div class="gfolders" id="gfolders"></div>
+        <div class="gtool" id="gtool"></div>
         <div class="gfilter" id="gfilter"></div>
         <div class="ggrid" id="ggrid"></div>
         <div class="gempty" id="gempty" hidden><b>No images yet</b>Everything you make shows up here, from every chat. Pictures are kept in memory only and are cleared when the app closes, so save the ones you want to keep.</div>
@@ -384,6 +426,9 @@ details.adv summary:hover,details.adv[open] summary{color:var(--text)}
   </div>
 </div>
 
+<div class="modal" id="pinmodal" role="dialog" aria-label="PIN"><div class="sheet pinsheet" id="pin-body"></div></div>
+<div class="gate" id="gate" role="dialog" aria-label="Unlock Open Image"><div class="pinsheet" id="gate-body"></div></div>
+
 <div class="modal" id="detail" role="dialog" aria-label="Image details">
   <div class="sheet detail">
     <div class="pic" id="d-pic"></div>
@@ -400,12 +445,18 @@ const ICON = {
   dl:'<svg class="i" viewBox="0 0 24 24"><path d="M12 4v11M7 11l5 5 5-5M5 20h14"/></svg>',
   full:'<svg class="i" viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>',
   reuse:'<svg class="i" viewBox="0 0 24 24"><path d="M4 12a8 8 0 0114-5.3L20 9M20 4v5h-5M20 12a8 8 0 01-14 5.3L4 15M4 20v-5h5"/></svg>',
-  retry:'<svg class="i" viewBox="0 0 24 24"><path d="M3 12a9 9 0 109-9M3 4v5h5"/></svg>'
+  retry:'<svg class="i" viewBox="0 0 24 24"><path d="M3 12a9 9 0 109-9M3 4v5h5"/></svg>',
+  lock:'<svg class="i" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 018 0v3"/></svg>',
+  unlock:'<svg class="i" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 017.6-1.7"/></svg>',
+  folder:'<svg class="i" viewBox="0 0 24 24"><path d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg>'
 };
 const ASPECT_LABEL = {square:"Square", wide:"Wallpaper 16:9", tall:"Phone 9:16"};
 const QUALITY_LABEL = {fast:"Fast", balanced:"Balanced", best:"Best"};
 const ACTIVE = ["queued","loading","encoding","generating"];
-const ST = { view:"chat", onlyUnc:false, mgrTab:"all", images:[], imgFilter:"", imgCount:-1, mgrSig:"", models:[], sel:null, chat:null, aspect:"square", quality:"balanced", est:{}, state:null, fetchedAt:0, editing:false, chatSig:"", fresh:true };
+let PREFS = {};
+const pref = k => (PREFS[k] === undefined || PREFS[k] === "") ? null : PREFS[k];
+function setPref(k, v){ PREFS[k] = String(v); api("/api/prefs", {[k]: String(v)}).catch(() => {}); }
+const ST = { folders:[], folder:"", folderLocked:false, view:"chat", onlyUnc:false, mgrTab:"all", images:[], imgFilter:"", imgCount:-1, mgrSig:"", models:[], sel:null, chat:null, aspect:"square", quality:"balanced", est:{}, state:null, fetchedAt:0, editing:false, chatSig:"", fresh:true };
 
 function fmt(s, round){
   s = Math.max(0, s);
@@ -426,7 +477,7 @@ function h(tag, attrs, ...kids){
   return e;
 }
 const api = (p, body) => fetch(p, body ? {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(body)} : {}).then(async r => {
-  if (!r.ok) { let m = "Request failed"; try { m = (await r.json()).detail || m; } catch(e){} throw new Error(m); }
+  if (!r.ok) { let m = "Request failed"; try { m = (await r.json()).detail || m; } catch(e){} const err = new Error(m); err.status = r.status; err.locked = r.status === 423; throw err; }
   return r.json();
 });
 const modelById = id => ST.models.find(m => m.id === id);
@@ -448,7 +499,7 @@ function groupOf(t){
 function renderChats(force){
   if (!ST.state || ST.editing) return;
   const chats = ST.state.chats;
-  const sig = JSON.stringify([ST.view, ST.chat, chats.map(c => [c.id, c.title, c.model, c.active, groupOf(c.updated), c.count])]) + ST.models.length;
+  const sig = JSON.stringify([ST.view, ST.chat, chats.map(c => [c.id, c.title, c.model, c.active, groupOf(c.updated), c.count, c.protected, c.open])]) + ST.models.length;
   if (!force && sig === ST.chatSig) return;
   ST.chatSig = sig;
   const box = $("#chats"); const keepScroll = box.scrollTop; box.textContent = "";
@@ -479,13 +530,15 @@ function chatItem(c){
   });
   const el = h("div", {class:"chat", role:"listitem", "aria-current": String(ST.view === "chat" && c.id === ST.chat), tabindex:"0", "data-id":c.id, title:c.title,
       onclick: () => switchChat(c.id), onkeydown: e => { if (e.key === "Enter" && e.target === el) switchChat(c.id); }},
-    sym(c.model),
+    c.protected ? h("span", {class:"lockic" + (c.open ? " open" : ""), html: c.open ? ICON.unlock : ICON.lock}) : sym(c.model),
     h("span", {class:"ctitle"}, c.title),
     c.active ? h("span", {class:"spin", title:"Generating…"}) : null,
     h("span", {class:"cact"},
-      h("button", {class:"ib", title:"Rename", "aria-label":"Rename chat", html:ICON.pencil, onclick: e => { e.stopPropagation(); startRename(el, c); }}),
+      c.protected && !c.open ? null : h("button", {class:"ib", title:"Rename", "aria-label":"Rename chat", html:ICON.pencil, onclick: e => { e.stopPropagation(); startRename(el, c); }}),
+      h("button", {class:"ib", title: c.protected ? (c.open ? "Lock options" : "Unlock") : "Lock chat", "aria-label":"Lock", html: c.protected && c.open ? ICON.unlock : ICON.lock,
+        onclick: e => { e.stopPropagation(); chatLock(c, e.currentTarget); }}),
       delBtn));
-  el.addEventListener("dblclick", e => { e.preventDefault(); startRename(el, c); });
+  el.addEventListener("dblclick", e => { e.preventDefault(); if (!(c.protected && !c.open)) startRename(el, c); });
   return el;
 }
 function startRename(el, c){
@@ -524,7 +577,7 @@ function renameTitle(){
   inp.addEventListener("keydown", e => { if (e.key === "Enter") finish(true); else if (e.key === "Escape") finish(false); });
   inp.addEventListener("blur", () => finish(true));
 }
-function setChat(id){ ST.chat = id; try { id ? localStorage.setItem("openimage.chat", id) : localStorage.removeItem("openimage.chat"); } catch(e){} }
+function setChat(id){ ST.chat = id; setPref("chat", id || ""); }
 function newChat(silent){
   setView("chat"); setChat(null); $("#lane").textContent = ""; ST.fresh = true; $("#side").classList.remove("open");
   if (ST.state) ST.state.jobs = [];
@@ -590,7 +643,7 @@ function closePicker(){ $("#mpop").classList.remove("open"); $("#pbtn").setAttri
 function selectModel(id){
   const wanted = modelById(id);
   if (!wanted || !wanted.available){ const first = ST.models.find(m => m.available); if (!first) return; id = first.id; }
-  ST.sel = id; try { localStorage.setItem("openimage.model", id); } catch(e){}
+  ST.sel = id; setPref("model", id);
   document.querySelectorAll(".mitem").forEach(c => c.setAttribute("aria-checked", String(c.dataset.id === id)));
   const m = cur();
   $("#pbtn-sym").replaceChildren(sym(id)); $("#pbtn-name").textContent = m.name;
@@ -598,14 +651,23 @@ function selectModel(id){
   refreshHeader(); refreshPill(); renderEmpty();
 }
 function refreshHeader(){
+  const lb = $("#lockbtn");
   if (ST.view === "images"){
-    const n = ST.images.length, chats = new Set(ST.images.map(i => i.chat_id)).size;
-    const t0 = $("#cur-title"); if (t0 && t0.tagName === "B") t0.textContent = "All images";
-    $("#cur-sub").textContent = n ? `${n} image${n === 1 ? "" : "s"} from ${chats} chat${chats === 1 ? "" : "s"}` : "Nothing here yet";
+    lb.hidden = true;
+    const n = ST.images.length, chats = new Set(ST.images.map(i => i.chat_id).filter(Boolean)).size;
+    const f = ST.folders.find(x => x.id === ST.folder);
+    const t0 = $("#cur-title"); if (t0 && t0.tagName === "B") t0.textContent = f ? f.name : "All images";
+    $("#cur-sub").textContent = ST.folderLocked ? "Locked folder" : f ? `${n} image${n === 1 ? "" : "s"} in this folder` : n ? `${n} image${n === 1 ? "" : "s"} from ${chats} chat${chats === 1 ? "" : "s"}` : "Nothing here yet";
     return;
   }
   const c = curChat(), m = cur();
   const t = $("#cur-title"); if (t && t.tagName === "B" && !ST.editing) t.textContent = c ? c.title : "New chat";
+  lb.hidden = !c;
+  if (c){
+    lb.innerHTML = (c.protected ? (c.open ? ICON.unlock : ICON.lock) : ICON.lock) + (c.protected ? (c.open ? "Locked · open" : "Unlock") : "Lock chat");
+    lb.onclick = () => chatLock(c, lb);
+  }
+  if (c && c.protected && !c.open){ $("#cur-sub").textContent = "Locked chat"; return; }
   if (!m) return;
   const loaded = ST.state && ST.state.loaded_model === m.id;
   const e = ST.est[m.id];
@@ -726,6 +788,7 @@ function buildDone(card, j){
       h("a", {class:"btn", href:`/api/images/${j.id}/download`, html:ICON.dl + "Save"}),
       h("button", {class:"btn", onclick: () => openLb(j.image), html:ICON.full + "Full size"}),
       h("button", {class:"btn", onclick: () => reuse(j), html:ICON.reuse + "Reuse settings"}),
+      h("button", {class:"btn", onclick: e => folderMenu(j, e.currentTarget), html:ICON.folder + "Folder"}),
       retryBtn(j)));
 }
 function retryBtn(j){
@@ -743,7 +806,16 @@ function reuse(j){
 let stick = true;  // follow new content only while the reader is at the bottom
 $("#feed").addEventListener("scroll", () => { const f = $("#feed"); stick = f.scrollHeight - f.scrollTop - f.clientHeight < 80; }, {passive:true});
 function renderJobs(){
-  const lane = $("#lane"); const jobs = ST.state.jobs;
+  const lane = $("#lane");
+  const shut = !!ST.state.locked_chat;
+  $("#prompt").disabled = shut; syncSend();
+  if (shut){
+    if (!lane.querySelector("[data-lockpanel]")){ const c = curChat(); lane.textContent = ""; lane.append(lockPanel("chat", ST.chat, c ? c.title : "This chat", () => poll())); }
+    return;
+  }
+  const stale = lane.querySelector("[data-lockpanel]");
+  if (stale){ lane.textContent = ""; ST.fresh = true; }
+  const jobs = ST.state.jobs;
   renderEmpty();
   const feed = $("#feed");
   let added = false;
@@ -765,10 +837,10 @@ function tickCountdown(){
 
 function setSeg(sel, v){ document.querySelectorAll(sel + " button").forEach(b => b.setAttribute("aria-checked", String(b.dataset.v === v))); }
 function wireSeg(sel, key){
-  document.querySelectorAll(sel + " button").forEach(b => b.addEventListener("click", () => { ST[key] = b.dataset.v; setSeg(sel, b.dataset.v); try { localStorage.setItem("openimage." + key, b.dataset.v); } catch(e){} loadEstimates(); }));
+  document.querySelectorAll(sel + " button").forEach(b => b.addEventListener("click", () => { ST[key] = b.dataset.v; setSeg(sel, b.dataset.v); setPref(key, b.dataset.v); loadEstimates(); }));
 }
 function autosize(){ const t = $("#prompt"); t.style.height = "auto"; t.style.height = Math.min(t.scrollHeight, 180) + "px"; }
-function syncSend(){ $("#send").disabled = !$("#prompt").value.trim() || !cur(); }
+function syncSend(){ $("#send").disabled = !$("#prompt").value.trim() || !cur() || !!(ST.state && ST.state.locked_chat); }
 async function submit(body){
   stick = true;
   try {
@@ -814,19 +886,63 @@ function setView(v){
   renderChats(true); refreshHeader();
 }
 async function loadImages(){
-  try { ST.images = await api("/api/images"); } catch(e){ return; }
+  try { ST.folders = await api("/api/folders"); } catch(e){}
+  if (ST.folder && !ST.folders.find(f => f.id === ST.folder)) ST.folder = "";
+  const fo = ST.folders.find(f => f.id === ST.folder);
+  ST.folderLocked = !!(fo && fo.protected && !fo.open);
+  if (ST.folderLocked) ST.images = [];
+  else { try { ST.images = await api("/api/images" + (ST.folder ? "?folder=" + ST.folder : "")); } catch(e){ if (e.locked){ ST.folderLocked = true; ST.images = []; } else return; } }
   ST.imgCount = ST.state ? ST.state.image_count : ST.images.length;
   if (ST.imgFilter && !ST.images.some(i => i.model === ST.imgFilter)) ST.imgFilter = "";
   renderGallery(); refreshHeader();
 }
+function pickFolder(id){ ST.folder = id; loadImages(); }
+function renderFolders(){
+  const box = $("#gfolders"); box.textContent = "";
+  box.append(h("button", {class:"gchip all", "aria-pressed": String(!ST.folder), onclick: () => pickFolder("")}, "All images"));
+  for (const f of ST.folders) box.append(h("button", {class:"gchip all", "aria-pressed": String(ST.folder === f.id), title:f.name, onclick: () => pickFolder(f.id)},
+    h("span", {class:"fico", html: f.protected ? (f.open ? ICON.unlock : ICON.lock) : ICON.folder}), " " + f.name + (f.count != null ? ` · ${f.count}` : "")));
+  box.append(h("button", {class:"gchip all add", onclick: newFolder}, "+ New folder"));
+  const tool = $("#gtool"); tool.textContent = "";
+  const f = ST.folders.find(x => x.id === ST.folder);
+  if (!f || (f.protected && !f.open)) return;
+  tool.append(h("button", {class:"btn sm", html:ICON.pencil + " Rename", onclick: () => renameFolder(f)}));
+  if (!f.protected) tool.append(h("button", {class:"btn sm", html:ICON.lock + " Lock folder", onclick: () => lockItem("folder", f.id, "Lock this folder", f.name)}));
+  else tool.append(h("button", {class:"btn sm", html:ICON.lock + " Lock now", onclick: async () => { try { await api(`/api/lock/folder/${f.id}/relock`, {}); } catch(e){ alert(e.message); } loadImages(); }}),
+    h("button", {class:"btn sm", html:"Change PIN", onclick: () => changePin("folder", f.id)}));
+  const del = h("button", {class:"btn sm", html:ICON.trash + " Delete folder"});
+  let t = null;
+  del.addEventListener("click", async () => {
+    if (!del.classList.contains("warn")){ del.classList.add("warn"); del.textContent = f.protected ? "Click again: deletes its pictures" : "Click again to delete"; t = setTimeout(() => { del.classList.remove("warn"); del.innerHTML = ICON.trash + " Delete folder"; }, 3500); return; }
+    clearTimeout(t);
+    try { await api(`/api/folders/${f.id}/delete`, {}); } catch(e){ alert(e.message); }
+    ST.folder = ""; loadImages(); poll();
+  });
+  tool.append(del);
+}
+async function newFolder(){
+  let made = null;
+  await pinDialog({title:"New folder", fields:[{key:"name", label:"Folder name", plain:true}], ok:"Create", run: async v => { made = (await api("/api/folders", {title:v.name})).id; }});
+  if (made){ ST.folder = made; loadImages(); }
+}
+function renameFolder(f){
+  pinDialog({title:"Rename folder", fields:[{key:"name", label:"Folder name", plain:true, value:f.name}], ok:"Rename", run: async v => { await api(`/api/folders/${f.id}/rename`, {title:v.name}); loadImages(); }});
+}
 function renderGallery(){
+  renderFolders();
   const f = $("#gfilter"); f.textContent = "";
+  if (ST.folderLocked){
+    const fo = ST.folders.find(x => x.id === ST.folder);
+    $("#ggrid").replaceChildren(lockPanel("folder", ST.folder, fo ? fo.label : "This folder", () => loadImages()));
+    $("#gempty").hidden = true; f.hidden = true; refreshHeader(); return;
+  }
   const counts = {}; ST.images.forEach(i => counts[i.model] = (counts[i.model] || 0) + 1);
   f.append(h("button", {class:"gchip all", "aria-pressed": String(!ST.imgFilter), onclick: () => { ST.imgFilter = ""; renderGallery(); }}, `All · ${ST.images.length}`));
   for (const m of ST.models) if (counts[m.id]) f.append(h("button", {class:"gchip", "aria-pressed": String(ST.imgFilter === m.id), onclick: () => { ST.imgFilter = m.id; renderGallery(); }}, sym(m.id), `${m.name} · ${counts[m.id]}`));
   const items = ST.images.filter(i => !ST.imgFilter || i.model === ST.imgFilter);
   const g = $("#ggrid"); g.textContent = "";
   $("#gempty").hidden = ST.images.length > 0; f.hidden = !ST.images.length;
+  $("#gempty").firstChild.textContent = ST.folder ? "This folder is empty" : "No images yet";
   for (const it of items){
     g.append(h("button", {class:"gcard", "aria-label": it.prompt, onclick: () => openDetail(it)},
       h("img", {src:it.thumb, alt:it.prompt, loading:"lazy", width:it.width, height:it.height}),
@@ -858,9 +974,10 @@ function openDetail(it){
       h("span", {}, "Took"), h("b", {}, fmt(it.seconds || 0)),
       h("span", {}, "Chat"), h("b", {}, it.chat_title || "-")),
     h("div", {class:"actions", style:"margin-top:auto"},
-      h("button", {class:"btn", html:ICON.full + "Open chat", onclick: () => { closeDetail(); switchChat(it.chat_id); setView("chat"); }}),
+      it.chat_id ? h("button", {class:"btn", html:ICON.full + "Open chat", onclick: () => { closeDetail(); switchChat(it.chat_id); setView("chat"); }}) : null,
+      h("button", {class:"btn", html:ICON.folder + "Folder", onclick: e => folderMenu(it, e.currentTarget, true)}),
       h("a", {class:"btn", href:`/api/images/${it.id}/download`, html:ICON.dl + "Save"}),
-      h("button", {class:"btn", html:ICON.reuse + "Reuse settings", onclick: () => { closeDetail(); if (it.chat_id !== ST.chat) switchChat(it.chat_id); setView("chat"); reuse(it); }}),
+      h("button", {class:"btn", html:ICON.reuse + "Reuse settings", onclick: () => { closeDetail(); if (it.chat_id && it.chat_id !== ST.chat) switchChat(it.chat_id); setView("chat"); reuse(it); }}),
       copy, del));
   $("#detail").classList.add("open");
 }
@@ -954,6 +1071,7 @@ function afterPoll(st){
   }
   if (finished) refreshModels(); else { renderMgr(); const picked = document.querySelectorAll("[data-pk]"); picked.forEach(el => { const m = modelById(el.dataset.pk); if (m && active(m.download)) el.textContent = m.download.state === "checking" ? "Starting…" : Math.round((m.download.progress || 0) * 100) + "%"; }); }
   const n = st.image_count; $("#imgcount").textContent = n || "";
+  $("#privbtn").textContent = st.master && st.master.open ? "Privacy & locks · master open" : "Privacy & locks";
   $("#vtext").textContent = n ? `${n} picture${n === 1 ? "" : "s"} in memory · ${st.vault_mb < 10 ? st.vault_mb.toFixed(1) : Math.round(st.vault_mb)} MB, encrypted` : "Pictures stay in memory only";
   if (ST.view === "images" && ST.imgCount !== n) loadImages();
 }
@@ -967,7 +1085,8 @@ async function checkLeftovers(){
 }
 
 async function boot(){
-  const ls = k => { try { return localStorage.getItem(k); } catch(e){ return null; } };
+  try { PREFS = await api("/api/prefs"); } catch(e){}
+  const ls = k => pref(k.replace("openimage.", ""));
   ST.aspect = ls("openimage.aspect") || "square"; ST.quality = ls("openimage.quality") || "balanced";
   setSeg("#aspect", ST.aspect); setSeg("#quality", ST.quality);
   wireSeg("#aspect", "aspect"); wireSeg("#quality", "quality");
@@ -990,13 +1109,14 @@ async function boot(){
   $("#detail").addEventListener("click", e => { if (e.target.id === "detail") closeDetail(); });
   document.querySelectorAll("#mgr-tabs .tab").forEach(b => b.addEventListener("click", () => { ST.mgrTab = b.dataset.tab; renderMgr(true); }));
   ST.onlyUnc = (ls("openimage.onlyunc") === "1"); $("#onlyunc").checked = ST.onlyUnc;
-  $("#onlyunc").addEventListener("change", e => { ST.onlyUnc = e.target.checked; try { localStorage.setItem("openimage.onlyunc", ST.onlyUnc ? "1" : "0"); } catch(x){} renderModels(); });
+  $("#onlyunc").addEventListener("change", e => { ST.onlyUnc = e.target.checked; setPref("onlyunc", ST.onlyUnc ? "1" : "0"); renderModels(); });
+  $("#privbtn").addEventListener("click", openPrivacy);
   $("#menu").addEventListener("click", () => $("#side").classList.toggle("open"));
   $("#cur-title").addEventListener("click", renameTitle);
   $("#pbtn").addEventListener("click", e => { e.stopPropagation(); $("#mpop").classList.contains("open") ? closePicker() : openPicker(); });
   document.addEventListener("click", e => { if (!e.target.closest(".picker")) closePicker(); });
   document.addEventListener("keydown", e => {
-    if (e.key === "Escape"){ closePicker(); $("#lb").classList.remove("open"); closeMgr(); closeDetail(); }
+    if (e.key === "Escape"){ closePicker(); $("#lb").classList.remove("open"); closeMgr(); closeDetail(); document.querySelectorAll(".menu").forEach(m => m.remove()); if (pinClose) pinClose(); }
     if ($("#mpop").classList.contains("open") && (e.key === "ArrowDown" || e.key === "ArrowUp")){
       e.preventDefault();
       const items = [...document.querySelectorAll("#mlist .mitem:not(.off)")]; const i = items.indexOf(document.activeElement);
@@ -1006,7 +1126,136 @@ async function boot(){
   $("#unload").addEventListener("click", async () => { try { await api("/api/unload", {}); await poll(); loadEstimates(); } catch(e){ alert(e.message); } });
   $("#prompt").focus();
 }
-boot();
+
+const PRIVACY_NOTE = "Locked chats and folders are encrypted with their own key, which is only in memory while they are open. Without the PIN nothing in them can be read, not even through the app's own local API. A forgotten PIN cannot be recovered.";
+let pinClose = null;
+
+function pinDialog({title, text, fields, ok, run, cancel = "Cancel", into}){
+  const host = into || $("#pin-body"), shell = into ? $("#gate") : $("#pinmodal");
+  return new Promise(resolve => {
+    const inputs = {};
+    const err = h("div", {class:"err", role:"alert"});
+    const okBtn = h("button", {class:"btn primary", type:"submit"}, ok);
+    const cancelBtn = h("button", {class:"btn", type:"button"}, cancel);
+    const form = h("form", {}, fields.map(f => h("div", {class:"fld"}, h("label", {}, f.label),
+      inputs[f.key] = h("input", {type: f.plain ? "text" : "password", autocomplete:"off", spellcheck:"false", maxlength:"64", value:f.value || ""}))), err, h("div", {class:"row"}, cancelBtn, okBtn));
+    const done = v => { shell.classList.remove("open"); pinClose = null; resolve(v); };
+    pinClose = () => done(false);
+    cancelBtn.addEventListener("click", () => done(false));
+    form.addEventListener("submit", async e => {
+      e.preventDefault(); err.textContent = ""; okBtn.disabled = true;
+      const vals = {}; for (const k in inputs) vals[k] = inputs[k].value;
+      try { await run(vals); done(true); } catch(x){ err.textContent = x.message; okBtn.disabled = false; inputs[fields[0].key].select(); }
+    });
+    host.replaceChildren(h("h2", {}, title), text ? h("p", {}, text) : null, form);
+    shell.classList.add("open"); inputs[fields[0].key].focus();
+  });
+}
+
+function popMenu(anchor, items){
+  document.querySelectorAll(".menu").forEach(m => m.remove());
+  const m = h("div", {class:"menu", role:"menu"}, items.map(i => i === "-" ? h("hr") : h("button", {role:"menuitem", class: i.danger ? "dng" : "", html: i.icon || "", onclick: e => { e.stopPropagation(); m.remove(); i.run(); }}, i.label)));
+  document.body.append(m);
+  const r = anchor.getBoundingClientRect();
+  m.style.left = Math.max(8, Math.min(r.left, innerWidth - m.offsetWidth - 8)) + "px";
+  m.style.top = Math.max(8, Math.min(r.bottom + 6, innerHeight - m.offsetHeight - 8)) + "px";
+  setTimeout(() => document.addEventListener("click", () => m.remove(), {once:true}), 0);
+}
+
+function lockPanel(kind, id, name, after){
+  const err = h("div", {class:"err", role:"alert"});
+  const pin = h("input", {type:"password", autocomplete:"off", "aria-label":"PIN", placeholder:"PIN"});
+  const go = h("button", {class:"btn primary", type:"submit"}, "Unlock");
+  const form = h("form", {onsubmit: async e => {
+    e.preventDefault(); err.textContent = ""; go.disabled = true;
+    try { await api(`/api/lock/${kind}/${id}/unlock`, {pin: pin.value}); await after(); }
+    catch(x){ err.textContent = x.message; go.disabled = false; pin.select(); }
+  }}, pin, err, go);
+  const wrap = h("div", {class:"lockpanel", "data-lockpanel":""}, h("div", {class:"big", html:ICON.lock}), h("h2", {}, name),
+    h("p", {}, `This ${kind} is locked. Enter its PIN to open it. Nothing inside can be read until you do.`), form);
+  setTimeout(() => pin.focus(), 50);
+  return wrap;
+}
+
+function lockItem(kind, id, title, name){
+  return pinDialog({title, text: PRIVACY_NOTE, ok:"Lock",
+    fields:[{key:"pin", label:"PIN (at least 4 characters)"}, {key:"pin2", label:"Repeat the PIN"}, {key:"label", label:"Name shown while it is locked (optional)", plain:true}],
+    run: async v => {
+      if (v.pin !== v.pin2) throw new Error("The two PINs are not the same.");
+      await api(`/api/lock/${kind}/${id}/protect`, {pin:v.pin, label:v.label});
+      await poll(); if (ST.view === "images") loadImages();
+    }});
+}
+function changePin(kind, id){
+  return pinDialog({title:"Change PIN", ok:"Change", fields:[{key:"pin", label:"Current PIN"}, {key:"n1", label:"New PIN"}, {key:"n2", label:"Repeat the new PIN"}],
+    run: async v => { if (v.n1 !== v.n2) throw new Error("The two new PINs are not the same."); await api(`/api/lock/${kind}/${id}/repin`, {pin:v.pin, new_pin:v.n1}); }});
+}
+function chatLock(c, anchor){
+  if (!c.protected) return lockItem("chat", c.id, "Lock this chat", c.title);
+  if (!c.open){ switchChat(c.id); return; }
+  popMenu(anchor, [
+    {label:"Lock now", icon:ICON.lock, run: async () => { try { await api(`/api/lock/chat/${c.id}/relock`, {}); } catch(e){ alert(e.message); } await poll(); renderChats(true); }},
+    {label:"Change PIN…", icon:ICON.pencil, run: () => changePin("chat", c.id)},
+    "-",
+    {label:"Remove lock…", icon:ICON.unlock, danger:true, run: () => pinDialog({title:"Remove the lock", text:"The chat is saved as a normal chat again.", ok:"Remove lock", fields:[{key:"pin", label:"PIN"}],
+      run: async v => { await api(`/api/lock/chat/${c.id}/unprotect`, {pin:v.pin}); await poll(); renderChats(true); }})}]);
+}
+
+async function folderMenu(it, anchor, fromGallery){
+  let folders = [];
+  try { folders = await api("/api/folders"); } catch(e){ return; }
+  const here = it.folder || null;
+  const items = folders.filter(f => f.open).map(f => ({label:(f.protected ? f.name + "  (locked folder: moves it here)" : f.name), icon: f.protected ? ICON.lock : ICON.folder,
+    run: async () => {
+      try { await api(`/api/folders/${f.id}/add`, {job_id: it.id}); } catch(e){ alert(e.message); return; }
+      if (fromGallery) closeDetail(); await poll(); if (ST.view === "images") loadImages();
+    }}));
+  if (here && folders.find(f => f.id === here && !f.protected)) items.push("-", {label:"Take out of its folder", icon:ICON.reuse, run: async () => {
+    try { await api(`/api/folders/${here}/remove`, {job_id: it.id}); } catch(e){ alert(e.message); return; }
+    if (fromGallery) closeDetail(); loadImages(); }});
+  items.push("-", {label:"New folder…", icon:ICON.folder, run: async () => {
+    let made = null;
+    await pinDialog({title:"New folder", fields:[{key:"name", label:"Folder name", plain:true}], ok:"Create", run: async v => { made = (await api("/api/folders", {title:v.name})).id; }});
+    if (made){ try { await api(`/api/folders/${made}/add`, {job_id: it.id}); } catch(e){ alert(e.message); } if (fromGallery) closeDetail(); await poll(); if (ST.view === "images") loadImages(); }
+  }});
+  popMenu(anchor, items);
+}
+
+async function openPrivacy(){
+  let m; try { m = await api("/api/master"); } catch(e){ return; }
+  const act = (label, run, extra = "") => h("button", {class:"btn " + extra, onclick: run}, label);
+  const refresh = async () => { await poll(); if (ST.view === "images") loadImages(); openPrivacy(); };
+  const body = $("#pin-body");
+  const stack = h("div", {class:"stack"});
+  if (!m.set) stack.append(act("Set a master PIN…", () => pinDialog({title:"Master PIN", text:"One PIN that opens every locked chat and folder at once for as long as the app stays open. " + PRIVACY_NOTE, ok:"Set master PIN",
+    fields:[{key:"pin", label:"Master PIN (at least 4 characters)"}, {key:"pin2", label:"Repeat the PIN"}],
+    run: async v => { if (v.pin !== v.pin2) throw new Error("The two PINs are not the same."); await api("/api/master/set", {pin:v.pin}); }}).then(refresh)));
+  else {
+    if (!m.open) stack.append(act("Unlock everything with the master PIN…", () => unlockMaster().then(refresh), "primary"));
+    else stack.append(act("Lock everything now", async () => { try { const r = await api("/api/master/lock", {}); if (r.busy) alert("Some chats are still drawing and stay open until they finish."); } catch(e){ alert(e.message); } refresh(); }, "primary"));
+    stack.append(act("Change the master PIN…", () => pinDialog({title:"Change master PIN", ok:"Change", fields:[{key:"pin", label:"Current master PIN"}, {key:"n1", label:"New PIN"}, {key:"n2", label:"Repeat the new PIN"}],
+      run: async v => { if (v.n1 !== v.n2) throw new Error("The two new PINs are not the same."); await api("/api/master/set", {pin:v.pin, new_pin:v.n1}); }}).then(refresh)),
+      act("Remove the master PIN…", () => pinDialog({title:"Remove master PIN", text:"Each locked chat and folder keeps its own PIN.", ok:"Remove", fields:[{key:"pin", label:"Master PIN"}],
+        run: async v => { await api("/api/master/remove", {pin:v.pin}); }}).then(refresh)));
+  }
+  body.replaceChildren(h("h2", {}, "Privacy & locks"),
+    h("p", {}, "Pictures are never written to disk. They are encrypted in memory and disappear when the app closes unless you save them."),
+    h("div", {class:"sect"}, "Master PIN"),
+    h("p", {}, m.set ? (m.open ? "Master PIN entered. Everything with a master wrap is open until you lock it or close the app." : "A master PIN is set. Enter it to open all your locked chats and folders at once.") : "Not set. Each locked chat and folder uses its own PIN."),
+    stack, h("div", {class:"row", style:"margin-top:14px"}, act("Close", () => $("#pinmodal").classList.remove("open"))));
+  $("#pinmodal").classList.add("open");
+}
+
+function unlockMaster(into){
+  return pinDialog({into, title: into ? "Open Image is locked" : "Master PIN", text: into ? "Enter your master PIN to open all locked chats and folders. You can also skip this and unlock them one by one." : "", ok:"Unlock",
+    cancel: into ? "Continue without unlocking" : "Cancel", fields:[{key:"pin", label:"Master PIN"}],
+    run: async v => { await api("/api/master/unlock", {pin:v.pin}); }});
+}
+async function startGate(){
+  let m; try { m = await api("/api/master"); } catch(e){ return; }
+  if (m.set && !m.open){ await unlockMaster($("#gate-body")); await poll(); renderChats(true); }
+}
+boot().then(startGate);
 </script>
 </body>
 </html>

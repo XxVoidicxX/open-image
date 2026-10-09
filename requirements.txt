@@ -4,6 +4,7 @@ psutil
 nvidia-ml-py
 pillow
 cryptography
+pywebview
 huggingface_hub
 accelerate
 safetensors

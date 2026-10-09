@@ -9,9 +9,11 @@ import time
 import uuid
 from pathlib import Path
 
-from . import resources, timing
+from . import locks, resources, timing
 from .catalog import BY_ID
 from .guard import EXIT_CODE_LOW_RAM
+from .library import Library
+from .locks import Locked
 from .paths import DATA, HOME
 from .vault import vault
 
@@ -30,8 +32,9 @@ def _load(path, default):
         return default
 
 
-class Manager:
+class Manager(Library):
     def __init__(self):
+        self._init_library()
         self.jobs = {}
         self.order = []
         self.chats = {}
@@ -50,9 +53,9 @@ class Manager:
     # storage
 
     def _restore(self):
-        self.chats = {c["id"]: c for c in _load(CHATS_FILE, [])}
+        self._restore_library(_load(CHATS_FILE, []))
         for job in _load(HISTORY_FILE, []):
-            if job["chat_id"] not in self.chats:
+            if job["chat_id"] not in self.chats or self.chats[job["chat_id"]].get("protected"):
                 continue
             if job["status"] == "done":  # pictures live in memory only, so after a restart the card keeps its prompt but not its image
                 job.update(image=None, expired=True)
@@ -60,11 +63,13 @@ class Manager:
             self.order.append(job["id"])
 
     def _save_jobs(self):
-        done = [self.jobs[i] for i in self.order if self.jobs[i]["status"] in FINISHED]
+        done = [self.jobs[i] for i in self.order if self.jobs[i]["status"] in FINISHED and not self.is_protected_chat(self.jobs[i]["chat_id"])]
         HISTORY_FILE.write_text(json.dumps(done), encoding="utf-8")
+        self._seal_open()
 
     def _save_chats(self):
-        CHATS_FILE.write_text(json.dumps(list(self.chats.values())), encoding="utf-8")
+        CHATS_FILE.write_text(json.dumps([self._chat_file_view(c) for c in self.chats.values()]), encoding="utf-8")
+        self._seal_open()
 
     # chats
 
@@ -82,6 +87,7 @@ class Manager:
             chat = self.chats.get(chat_id)
             if not chat:
                 return False
+            self.require_open_chat(chat_id)
             chat["title"] = title.strip()[:80] or "Untitled chat"
             chat["title_auto"] = False
             self._save_chats()
@@ -99,6 +105,12 @@ class Manager:
                 self.jobs.pop(job_id, None)
                 vault.drop(job_id)
             self.order = [i for i in self.order if i in self.jobs]
+            if self.chats[chat_id].get("protected"):
+                vault.drop_scope(chat_id)
+                self.keys.pop(chat_id, None)
+                self.docs.pop(chat_id, None)
+                locks.delete_doc(chat_id)
+            self._unfile(set(ids))
             del self.chats[chat_id]
             self._save_chats()
             self._save_jobs()
@@ -132,7 +144,7 @@ class Manager:
         self.events = events = queue.Queue()
         log = open(LOG_FILE, "a", buffering=1, encoding="utf-8")
         log.write(f"\n--- {time.strftime('%Y-%m-%d %H:%M:%S')} worker {model_id}\n")
-        env = dict(os.environ, PYTHONPATH=str(Path(__file__).resolve().parent.parent), OPEN_IMAGE_HOME=str(HOME))
+        env = dict(os.environ, PYTHONPATH=str(Path(__file__).resolve().parent.parent), OPEN_IMAGE_HOME=str(HOME), HF_HUB_OFFLINE="1", TRANSFORMERS_OFFLINE="1")
         flags = 0x08000000 if os.name == "nt" else 0  # no console window
         proc = subprocess.Popen([sys.executable, "-m", "open_image.worker", model_id], stdin=subprocess.PIPE, stdout=subprocess.PIPE,
                                 stderr=log, text=True, encoding="utf-8", bufsize=1, env=env, creationflags=flags)
@@ -239,8 +251,13 @@ class Manager:
                     megapixels = job["width"] * job["height"] / 1e6
                     prep = job["gen_started"] - job["started_at"] if model.overhead_s else None
                     timing.record(model, unit=(time.time() - job["gen_started"]) / (megapixels * job["steps"]), prep=prep, ctx=job.get("ctx"))
-                vault.put(job["id"], "full", base64.b64decode(event["full"]))
-                vault.put(job["id"], "thumb", base64.b64decode(event["thumb"]))
+                scope = job["chat_id"] if self.is_protected_chat(job["chat_id"]) else None
+                key = self.keys.get(scope) if scope else None
+                if scope and key is None:
+                    job.update(status="error", error="This chat was locked before the picture finished, so it was discarded.")
+                    return
+                vault.put(job["id"], "full", base64.b64decode(event["full"]), scope, key)
+                vault.put(job["id"], "thumb", base64.b64decode(event["thumb"]), scope, key)
                 job.update(status="done", image=f"/vault/{job['id']}.png", seconds=round(time.time() - job["started_at"], 1))
                 return
             elif kind == "error":
@@ -272,28 +289,52 @@ class Manager:
         with self.lock:
             return any(j["model"] == model_id and j["status"] in LIVE for j in self.jobs.values())
 
-    def images(self, model_id=None):
+    def images(self, model_id=None, folder=None):
+        """Pictures for the Images page. Everything shown here comes from plain chats; pictures in a locked
+        chat never appear, and pictures in a locked folder only appear inside that folder."""
         with self.lock:
-            done = [dict(j) for j in self.jobs.values() if j["status"] == "done" and vault.has(j["id"]) and (not model_id or j["model"] == model_id)]
-            titles = {c["id"]: c["title"] for c in self.chats.values()}
+            if folder:
+                f = self.folders.get(folder)
+                if f is None:
+                    raise KeyError(folder)
+                if f.get("protected"):
+                    if folder not in self.keys:
+                        raise locks.Locked()
+                    pool = list(self.folder_jobs.get(folder, {}).values())
+                else:
+                    pool = [self.jobs[i] for i in f["items"] if i in self.jobs]
+            else:
+                pool = [j for j in self.jobs.values() if not self.is_protected_chat(j["chat_id"])]
+            homes = {}
+            for f in self.folders.values():
+                for i in f.get("items", []):
+                    homes[i] = f["id"]
+            done = [dict(j) for j in pool if j["status"] == "done" and vault.has(j["id"]) and (not model_id or j["model"] == model_id)]
+            titles = {c["id"]: c["title"] for c in self.chats.values() if not c.get("protected")}
         done.sort(key=lambda j: j["created"], reverse=True)
         out = []
         for job in done:
             item = self.public(job)
             item["chat_title"] = titles.get(job["chat_id"], "")
             item["thumb"] = f"/vault/{job['id']}.jpg"
+            item["folder"] = folder or homes.get(job["id"])
             out.append(item)
         return out
 
     def delete_image(self, job_id):
         with self.lock:
             job = self.jobs.get(job_id)
-            if not job or job["status"] not in FINISHED:
-                return False
-            self.jobs.pop(job_id)
-            self.order.remove(job_id)
+            if job and job["status"] in FINISHED:
+                self.jobs.pop(job_id)
+                self.order.remove(job_id)
+            else:
+                job = next((jobs.pop(job_id) for jobs in self.folder_jobs.values() if job_id in jobs), None)
+                if not job:
+                    return False
             vault.drop(job_id)
+            self._unfile({job_id})
             self._save_jobs()
+            self._save_folders()
         return True
 
     # reading state for the UI
@@ -318,12 +359,13 @@ class Manager:
         with self.lock:
             order = list(self.order)
             jobs = {i: dict(self.jobs[i]) for i in order}
-            chats = [dict(c) for c in self.chats.values()]
+            chats = [self._chat_view(c) for c in self.chats.values()]
+            shut = bool(chat_id) and self.is_protected_chat(chat_id) and chat_id not in self.keys
         shown, ahead, live_count, active, counts, done_count = [], 0.0, 0, {}, {}, 0
         for job_id in order:
             job = jobs[job_id]
             counts[job["chat_id"]] = counts.get(job["chat_id"], 0) + 1
-            done_count += job["status"] == "done" and vault.has(job_id)
+            done_count += job["status"] == "done" and vault.has(job_id) and not any(c["id"] == job["chat_id"] and c["protected"] for c in chats)
             if job["status"] in LIVE:
                 job["eta_s"] = ahead + self.remaining(job, res)
                 job["jobs_ahead"] = live_count
@@ -337,7 +379,16 @@ class Manager:
             chat["active"] = active.get(chat["id"], 0)
         chats.sort(key=lambda c: c["updated"], reverse=True)
         return {"jobs": shown, "chats": chats, "queue_ahead_s": ahead, "loaded_model": self.model_id, "busy": self.busy, "resources": res,
-                "image_count": done_count, "vault_mb": round(vault.size / 2**20, 1), "vault_full": vault.full}
+                "locked_chat": shut, "master": self.master_state(), "image_count": done_count, "vault_mb": round(vault.size / 2**20, 1), "vault_full": vault.full}
+
+    def _chat_view(self, chat):
+        view = dict(chat)
+        view["protected"] = bool(chat.get("protected"))
+        if view["protected"]:
+            view["open"] = chat["id"] in self.keys
+            if not view["open"]:
+                view.update(title=chat["label"], model=None, title_auto=False)
+        return view
 
     @staticmethod
     def public(job):

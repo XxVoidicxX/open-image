@@ -1,17 +1,18 @@
+import hmac
+import json
 import os
 import random
+import secrets
 import socket
-import subprocess
 import sys
 import threading
 import time
 import uuid
-import webbrowser
 from pathlib import Path
 
 import uvicorn
 from fastapi import FastAPI, HTTPException
-from fastapi.responses import FileResponse, Response
+from fastapi.responses import FileResponse, JSONResponse, RedirectResponse, Response
 from pydantic import BaseModel
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 
@@ -19,11 +20,18 @@ from . import __version__, resources, timing
 from .catalog import ASPECTS, BY_ID, MODEL_LIST, QUALITIES, folder_size, size_for
 from .installs import Installer
 from .jobs import Manager
-from .paths import DATA, LEGACY_IMAGES, LEGACY_THUMBS, WINDOW
+from .locks import BadPin, Locked, TooFast
+from .paths import DATA, LEGACY_IMAGES, LEGACY_THUMBS
 from .vault import vault
 
 STATIC = Path(__file__).parent / "static"
 PORT = int(os.environ.get("OPEN_IMAGE_PORT", "7860"))
+PREFS_FILE = DATA / "prefs.json"
+COOKIE = "oi_session"
+# the window gets this secret on launch; anything else on the machine has to go without
+TOKEN = os.environ.get("OPEN_IMAGE_TOKEN") or secrets.token_urlsafe(32)
+CSP = ("default-src 'self'; img-src 'self' blob: data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; "
+       "connect-src 'self'; frame-ancestors 'none'; form-action 'none'; base-uri 'none'")
 
 manager = Manager()
 installer = Installer()
@@ -33,10 +41,44 @@ app.add_middleware(TrustedHostMiddleware, allowed_hosts=["127.0.0.1", "localhost
 
 
 @app.middleware("http")
-async def never_cache(request, call_next):
+async def gate(request, call_next):
+    if hmac.compare_digest(request.query_params.get("t", ""), TOKEN):
+        reply = RedirectResponse(request.url.path or "/")
+        reply.set_cookie(COOKIE, TOKEN, httponly=True, samesite="strict")
+        return reply
+    if not hmac.compare_digest(request.cookies.get(COOKIE, ""), TOKEN):
+        return JSONResponse({"detail": "This window is not connected to Open Image."}, status_code=401)
     response = await call_next(request)
     response.headers["Cache-Control"] = "no-store"
+    response.headers["Content-Security-Policy"] = CSP
+    response.headers["X-Content-Type-Options"] = "nosniff"
     return response
+
+
+@app.exception_handler(Locked)
+async def on_locked(request, exc):
+    return JSONResponse({"detail": "This is locked. Enter its PIN first.", "locked": True}, status_code=423)
+
+
+@app.exception_handler(BadPin)
+async def on_bad_pin(request, exc):
+    return JSONResponse({"detail": "That PIN is not right."}, status_code=403)
+
+
+@app.exception_handler(TooFast)
+async def on_too_fast(request, exc):
+    seconds = int(exc.seconds) + 1
+    return JSONResponse({"detail": f"Too many wrong tries. Wait {seconds} seconds and try again.", "wait": seconds}, status_code=429)
+
+
+@app.exception_handler(ValueError)
+async def on_value_error(request, exc):
+    return JSONResponse({"detail": str(exc)}, status_code=400)
+
+
+@app.exception_handler(KeyError)
+async def on_missing(request, exc):
+    return JSONResponse({"detail": "Not found."}, status_code=404)
 
 
 class Generate(BaseModel):
@@ -52,6 +94,16 @@ class Generate(BaseModel):
 
 class Rename(BaseModel):
     title: str
+
+
+class PinBody(BaseModel):
+    pin: str = ""
+    new_pin: str = ""
+    label: str = ""
+
+
+class Item(BaseModel):
+    job_id: str
 
 
 def model_info(m):
@@ -104,8 +156,8 @@ def uninstall_model(model_id: str):
 
 
 @app.get("/api/images")
-def images(model: str | None = None):
-    return manager.images(model)
+def images(model: str | None = None, folder: str | None = None):
+    return manager.images(model, folder)
 
 
 @app.post("/api/images/{job_id}/delete")
@@ -120,7 +172,7 @@ def vault_file(name: str):
     job_id, _, ext = name.partition(".")
     if not job_id.isalnum() or ext not in ("png", "jpg"):
         raise HTTPException(404)
-    data = vault.get(job_id, "full" if ext == "png" else "thumb")
+    data = vault.get(job_id, "full" if ext == "png" else "thumb", manager.keys)
     if data is None:
         raise HTTPException(404)
     return Response(data, media_type="image/png" if ext == "png" else "image/jpeg")
@@ -128,9 +180,9 @@ def vault_file(name: str):
 
 @app.get("/api/images/{job_id}/download")
 def download_image(job_id: str):
-    job = manager.jobs.get(job_id)
-    data = vault.get(job_id, "full") if job else None
-    if data is None:
+    data = vault.get(job_id, "full", manager.keys)
+    job = manager.find_job(job_id)
+    if data is None or job is None:
         raise HTTPException(404, "That image is no longer in memory.")
     return Response(data, media_type="image/png", headers={"Content-Disposition": f'attachment; filename="{job["model"]}-{job["seed"]}.png"'})
 
@@ -190,6 +242,8 @@ def generate(req: Generate):
         raise HTTPException(400, "Bad settings.")
 
     chat = manager.chats.get(req.chat_id) if req.chat_id else None
+    if chat:
+        manager.require_open_chat(chat["id"])
     if not chat:
         chat = manager.new_chat(model.id)
     manager.touch_chat(chat["id"], model.id, prompt)
@@ -241,37 +295,143 @@ def unload():
     return {"ok": True}
 
 
+@app.post("/api/lock/{kind}/{item_id}/{action}")
+def lock_action(kind: str, item_id: str, action: str, body: PinBody):
+    if kind not in ("chat", "folder") or action not in ("protect", "unlock", "relock", "unprotect", "repin"):
+        raise HTTPException(404)
+    if action == "protect":
+        manager.protect(kind, item_id, body.pin, body.label)
+    elif action == "unlock":
+        manager.unlock(kind, item_id, body.pin)
+    elif action == "relock":
+        manager.relock(kind, item_id)
+    elif action == "unprotect":
+        manager.unprotect(kind, item_id, body.pin)
+    else:
+        manager.repin(kind, item_id, body.pin, body.new_pin)
+    return {"ok": True}
+
+
+@app.get("/api/master")
+def master_info():
+    return manager.master_state()
+
+
+@app.post("/api/master/{action}")
+def master_action(action: str, body: PinBody):
+    if action == "set":
+        manager.master_set(body.new_pin or body.pin, body.pin if manager.master.exists else "")
+    elif action == "unlock":
+        manager.master_unlock(body.pin)
+    elif action == "remove":
+        manager.master_remove(body.pin)
+    elif action == "lock":
+        return {"ok": True, "busy": manager.lock_all()}
+    else:
+        raise HTTPException(404)
+    return manager.master_state()
+
+
+@app.get("/api/folders")
+def folders():
+    return manager.folder_list()
+
+
+@app.post("/api/folders")
+def new_folder(body: Rename):
+    return {"id": manager.new_folder(body.title)["id"]}
+
+
+@app.post("/api/folders/{folder_id}/rename")
+def rename_folder(folder_id: str, body: Rename):
+    manager.rename_folder(folder_id, body.title)
+    return {"ok": True}
+
+
+@app.post("/api/folders/{folder_id}/delete")
+def delete_folder(folder_id: str):
+    manager.delete_folder(folder_id)
+    return {"ok": True}
+
+
+@app.post("/api/folders/{folder_id}/add")
+def folder_add(folder_id: str, body: Item):
+    manager.add_to_folder(folder_id, body.job_id)
+    return {"ok": True}
+
+
+@app.post("/api/folders/{folder_id}/remove")
+def folder_remove(folder_id: str, body: Item):
+    manager.remove_from_folder(folder_id, body.job_id)
+    return {"ok": True}
+
+
+@app.get("/api/prefs")
+def get_prefs():
+    try:
+        return json.loads(PREFS_FILE.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return {}
+
+
+@app.post("/api/prefs")
+def set_prefs(body: dict):
+    prefs = get_prefs()
+    prefs.update({str(k)[:40]: str(v)[:80] for k, v in body.items() if v is not None})
+    PREFS_FILE.write_text(json.dumps(prefs), encoding="utf-8")
+    return prefs
+
+
 @app.get("/")
 def index():
     return FileResponse(STATIC / "index.html", headers={"Cache-Control": "no-store"})
 
 
-def open_window(url):
-    edge = [os.path.join(os.environ.get(var, ""), r"Microsoft\Edge\Application\msedge.exe")
-            for var in ("ProgramFiles(x86)", "ProgramFiles")]
-    for exe in edge:
-        if os.path.exists(exe):  # app mode gives a window without browser chrome
-            WINDOW.mkdir(parents=True, exist_ok=True)  # own profile with the disk cache switched off
-            subprocess.Popen([exe, f"--app={url}", "--window-size=1320,860", f"--user-data-dir={WINDOW}",
-                              "--disk-cache-size=1", "--media-cache-size=1", "--no-first-run", "--no-default-browser-check"])
-            return
-    webbrowser.open(url)
+def bring_to_front():
+    """If the app is already running, raise its window instead of starting a second copy."""
+    if os.name != "nt":
+        return
+    import ctypes
+    user32 = ctypes.windll.user32
+    hwnd = user32.FindWindowW(None, "Open Image")
+    if hwnd:
+        user32.ShowWindow(hwnd, 9)
+        user32.SetForegroundWindow(hwnd)
 
 
-def serve(open_browser=True):
+def run_window(url):
+    import webview
+    webview.settings["ALLOW_DOWNLOADS"] = True
+    webview.settings["OPEN_EXTERNAL_LINKS_IN_BROWSER"] = False
+    webview.settings["ALLOW_FILE_URLS"] = False
+    webview.create_window("Open Image", f"{url}/?t={TOKEN}", width=1320, height=860, min_size=(900, 620), background_color="#0b0b12")
+    webview.start(gui="edgechromium", private_mode=True, debug=False)  # private mode: no profile, cache or cookies are kept
+
+
+def serve(window=True):
+    import uvicorn
     url = f"http://127.0.0.1:{PORT}"
     if sys.stdout is None or sys.stderr is None:  # pythonw has no console
         sys.stdout = sys.stderr = open(DATA / "server.log", "a", buffering=1, encoding="utf-8")
     with socket.socket() as probe:
         probe.settimeout(0.5)
-        if probe.connect_ex(("127.0.0.1", PORT)) == 0:  # already running, just show it
-            if open_browser:
-                open_window(url)
+        if probe.connect_ex(("127.0.0.1", PORT)) == 0:
+            bring_to_front()
             return
     resources.monitor.start()
-    if open_browser:
-        threading.Timer(1.2, open_window, args=(url,)).start()
+    server = uvicorn.Server(uvicorn.Config(app, host="127.0.0.1", port=PORT, log_level="warning"))
+    thread = threading.Thread(target=server.run, daemon=True)
+    thread.start()
+    while not server.started and thread.is_alive():
+        time.sleep(0.05)
     try:
-        uvicorn.run(app, host="127.0.0.1", port=PORT, log_level="warning")
+        if window:
+            run_window(url)
+        else:
+            thread.join()
+    except KeyboardInterrupt:
+        pass
     finally:
+        server.should_exit = True
+        manager.lock_all()
         manager.stop_worker()

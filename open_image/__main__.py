@@ -9,7 +9,7 @@ def main():
     sub = parser.add_subparsers(dest="command")
 
     serve = sub.add_parser("serve", help="start the app (default)")
-    serve.add_argument("--no-window", action="store_true", help="don't open a window")
+    serve.add_argument("--no-window", action="store_true", help="run only the local server, with no window")
 
     dl = sub.add_parser("download", help="download models from Hugging Face")
     dl.add_argument("models", nargs="+", help="model ids, or 'all'")
@@ -26,7 +26,7 @@ def main():
             print(f"{'installed' if m.installed else '-':<10} {m.id:<18} {m.name}")
     else:
         from . import server
-        server.serve(open_browser=not getattr(args, "no_window", False))
+        server.serve(window=not getattr(args, "no_window", False))
 
 
 if __name__ == "__main__":
