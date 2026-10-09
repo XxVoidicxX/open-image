@@ -1,0 +1,13 @@
+fastapi
+uvicorn
+psutil
+nvidia-ml-py
+pillow
+huggingface_hub
+accelerate
+safetensors
+sentencepiece
+protobuf
+bitsandbytes
+transformers>=5.17
+diffusers @ git+https://github.com/huggingface/diffusers
