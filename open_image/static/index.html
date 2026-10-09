@@ -168,9 +168,21 @@ svg.i{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:2;stroke
 .stage::before{content:"";position:absolute;inset:-50%;z-index:2;pointer-events:none;background:conic-gradient(from 0deg,transparent 0 62%,rgba(255,255,255,.07) 74%,transparent 86%);animation:rot 7s linear infinite;mix-blend-mode:screen}
 .stage.live::after{content:"";position:absolute;left:0;right:0;top:-35%;height:35%;z-index:3;pointer-events:none;background:linear-gradient(180deg,transparent,rgba(170,200,255,.09),transparent);animation:scan 3.2s linear infinite}
 @keyframes scan{to{top:100%}}
-.pv{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;z-index:1;filter:blur(var(--blur)) saturate(1.12);transform:scale(1.03);transition:opacity .55s ease,filter .8s ease}
-.pv.on{opacity:1}
+.pv{position:absolute;inset:0;width:100%;height:100%;opacity:0;z-index:1;filter:blur(var(--blur)) saturate(1.12);transform:scale(1.03);transition:opacity .6s ease,filter .8s ease,transform .9s var(--ease)}
+.stage.has-pv .pv{opacity:1}
 .stage.has-pv .dream{opacity:0}
+.stage .grid{position:absolute;inset:0;z-index:2;pointer-events:none;opacity:var(--grid,.55);transition:opacity 1s ease;mix-blend-mode:screen;
+  background-image:linear-gradient(rgba(160,205,255,.11) 1px,transparent 1px),linear-gradient(90deg,rgba(160,205,255,.11) 1px,transparent 1px);
+  background-size:calc(100% / var(--cols)) calc(100% / var(--rows))}
+.glitch{position:absolute;inset:0;z-index:3;pointer-events:none;overflow:hidden}
+.glitch i{position:absolute;height:1px;background:linear-gradient(90deg,transparent,rgba(150,225,255,.95),transparent);box-shadow:0 0 6px rgba(120,200,255,.8);animation:zap .65s ease-out forwards}
+.glitch i.v{width:1px;background:linear-gradient(180deg,transparent,rgba(150,225,255,.95),transparent)}
+@keyframes zap{0%{opacity:0}12%{opacity:1}100%{opacity:0}}
+.stage.finishing .pv{filter:none;transform:none}
+.stage.finishing .grid{opacity:0;transition:opacity 1.5s ease}
+.stage.finishing::before,.stage.finishing::after{opacity:0;transition:opacity .8s}
+.stage.finishing .hud{animation:hudout 2.6s ease forwards}
+@keyframes hudout{0%,65%{opacity:1;transform:none}100%{opacity:0;transform:translateY(8px)}}
 .grain{position:absolute;inset:0;z-index:2;pointer-events:none;opacity:.16;mix-blend-mode:overlay;
   background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
 .hud{position:absolute;left:10px;right:10px;bottom:12px;z-index:4;display:flex;justify-content:space-between;align-items:flex-end;gap:12px;padding:10px 13px;border-radius:13px;
@@ -824,7 +836,10 @@ function fillCard(card, j){
     if (!card.querySelector(".stage")) buildActive(card, j);
     updateActive(card, j);
   } else if (changed){
-    if (j.status === "done") buildDone(card, j, ACTIVE.indexOf(prev) >= 0);
+    if (j.status === "done"){
+      if (ACTIVE.indexOf(prev) >= 0 && j.image && card.querySelector("canvas.pv")) finishBuild(card, j);
+      else buildDone(card, j, false);
+    }
     else if (j.status === "cancelled") { card.className = "card"; card.textContent = ""; card.append(h("div", {class:"stat"}, h("div", {class:"l"}, "Stopped", h("span", {}, "You cancelled this one."))), h("div", {class:"actions"}, retryBtn(j))); }
     else buildErr(card, j);
   }
@@ -837,6 +852,8 @@ function seeded(text){
 function buildActive(card, j){
   card.className = "card gen"; card.textContent = "";
   card.style.setProperty("--ar", (j.width / j.height).toFixed(4));
+  card._ar = j.width / j.height; card._frame = null; card._busy = false; card._pending = null; card._finishing = false;
+  card.style.setProperty("--cols", TILE_COLS); card.style.setProperty("--rows", Math.max(4, Math.round(TILE_COLS / card._ar)));
   const r = seeded(j.id + j.seed), base = Math.floor(r() * 360);
   const blobs = [0, 1, 2, 3, 4].map(k => h("i", {style:`--h:${Math.round(base + k * 62 + r() * 30) % 360};--x:${Math.round(r() * 55)}%;--y:${Math.round(r() * 55)}%;` +
     `--tx:${Math.round((r() - .5) * 70)}%;--ty:${Math.round((r() - .5) * 70)}%;--d:${(5 + r() * 6).toFixed(1)}s;animation-delay:-${(r() * 6).toFixed(1)}s`}));
@@ -844,7 +861,8 @@ function buildActive(card, j){
   card.append(
     h("div", {class:"stage live" + (ar < .8 ? " small" : "")},
       h("div", {class:"dream"}, blobs),
-      h("img", {class:"pv", alt:""}), h("img", {class:"pv", alt:""}),
+      h("canvas", {class:"pv"}),
+      h("div", {class:"grid"}), h("div", {class:"glitch"}),
       h("div", {class:"grain"}),
       h("div", {class:"hud"},
         h("div", {class:"hl"}, h("b", {"data-l":""}, ""), h("span", {"data-sub":""}, "")),
@@ -852,12 +870,115 @@ function buildActive(card, j){
       h("div", {class:"pbar", "data-prog":""}, h("i"))),
     h("div", {class:"cardfoot"}, h("span", {"data-foot":""}, ""), h("button", {class:"link", onclick: () => api(`/api/jobs/${j.id}/cancel`, {}).catch(()=>{})}, "Stop")));
 }
+const TILE_COLS = 18;
+function fitCanvas(card){
+  const c = card.querySelector("canvas.pv"), st = card.querySelector(".stage");
+  const w = Math.min(1024, Math.round((st.clientWidth || 500) * (window.devicePixelRatio || 1))), hgt = Math.round(w / card._ar);
+  if (c.width !== w || c.height !== hgt){ c.width = w; c.height = hgt; if (card._frame) c.getContext("2d").drawImage(card._frame, 0, 0, w, hgt); }
+  return c;
+}
+function shuffled(n){
+  const a = Array.from({length:n}, (_, i) => i);
+  for (let i = n - 1; i > 0; i--){ const k = Math.floor(Math.random() * (i + 1)); [a[i], a[k]] = [a[k], a[i]]; }
+  return a;
+}
+function glitch(card, count){
+  const box = card.querySelector(".glitch"); if (!box) return;
+  for (let i = 0; i < count; i++){
+    const v = Math.random() < .4, len = 8 + Math.random() * 34, at = Math.random() * 100, from = Math.random() * (100 - len);
+    const line = h("i", {class: v ? "v" : "", style: v ? `left:${at.toFixed(2)}%;top:${from.toFixed(2)}%;height:${len.toFixed(1)}%` : `top:${at.toFixed(2)}%;left:${from.toFixed(2)}%;width:${len.toFixed(1)}%`});
+    box.append(line); setTimeout(() => line.remove(), 700);
+  }
+}
+function tile(ctx, img, k, cols, tw, th, W, H, dx){
+  const x = (k % cols) * tw, y = Math.floor(k / cols) * th;
+  ctx.drawImage(img, x / W * img.naturalWidth, y / H * img.naturalHeight, tw / W * img.naturalWidth, th / H * img.naturalHeight, x + (dx || 0), y, tw + .6, th + .6);
+  return [x, y];
+}
+function reveal(card, img){
+  // a new step lands tile by tile, each tile jittering and flashing for a moment as it locks in
+  const c = fitCanvas(card), ctx = c.getContext("2d"), W = c.width, H = c.height;
+  const prev = card._frame; card._frame = img; card._busy = true;
+  const cols = TILE_COLS, rows = Math.max(4, Math.round(cols / card._ar)), tw = W / cols, th = H / rows;
+  const order = shuffled(cols * rows), landed = new Float64Array(order.length).fill(-1), start = performance.now(), dur = 360;
+  glitch(card, 2 + Math.floor(Math.random() * 3));
+  const step = now => {
+    if (card._finishing || !card.isConnected) { card._busy = false; return; }
+    const upto = Math.floor(Math.min(1, (now - start) / dur) * order.length);
+    if (prev) ctx.drawImage(prev, 0, 0, W, H); else { ctx.fillStyle = "#06070b"; ctx.fillRect(0, 0, W, H); }
+    let settling = false;
+    for (let i = 0; i < upto; i++){
+      const k = order[i]; if (landed[k] < 0) landed[k] = now;
+      const age = now - landed[k];
+      const [x, y] = tile(ctx, img, k, cols, tw, th, W, H, age < 70 ? (Math.random() - .5) * tw * .3 : 0);
+      if (age < 110){ settling = true; ctx.fillStyle = `rgba(150,205,255,${(.24 * (1 - age / 110)).toFixed(3)})`; ctx.fillRect(x, y, tw, th); }
+    }
+    if (upto < order.length || settling) return requestAnimationFrame(step);
+    ctx.drawImage(img, 0, 0, W, H);
+    card._busy = false;
+    if (card._pending){ const next = card._pending; card._pending = null; reveal(card, next); }
+  };
+  requestAnimationFrame(step);
+}
 function showPreview(card, j){
-  if (!j.preview_n || card.dataset.pvn === String(j.preview_n)) return;
+  if (card._finishing || !j.preview_n || card.dataset.pvn === String(j.preview_n)) return;
   card.dataset.pvn = String(j.preview_n);
-  const [a, b] = card.querySelectorAll(".pv"), on = card.querySelector(".pv.on"), next = on === a ? b : a;
-  next.onload = () => { next.classList.add("on"); if (on && on !== next) on.classList.remove("on"); card.querySelector(".stage").classList.add("has-pv"); };
-  next.src = `/api/jobs/${j.id}/preview?n=${j.preview_n}`;
+  const img = new Image();
+  img.onload = () => {
+    if (card._finishing) return;
+    card.querySelector(".stage").classList.add("has-pv");
+    if (card._busy) card._pending = img; else reveal(card, img);
+  };
+  img.src = `/api/jobs/${j.id}/preview?n=${j.preview_n}`;
+}
+async function finishBuild(card, j){
+  // hand over from the last preview to the real picture: blur and static fade out while tiles lock into the sharp pixels
+  card._finishing = true;
+  const img = new Image();
+  img.src = j.image;
+  try { await img.decode(); } catch(e){ buildDone(card, j, true); return; }
+  if (!card.isConnected) return;
+  const c = fitCanvas(card), ctx = c.getContext("2d"), W = c.width, H = c.height, last = card._frame;
+  const stage = card.querySelector(".stage");
+  stage.classList.add("has-pv", "finishing"); stage.classList.remove("live");
+  stage.style.setProperty("--blur", "0px");
+  card.querySelector("[data-l]").textContent = "Finishing";
+  card.querySelector("[data-sub]").textContent = "Clearing the last of the noise";
+  card.querySelector("[data-eta]").textContent = ""; card.querySelector("[data-etasub]").textContent = "";
+  const pr = card.querySelector("[data-prog]"); pr.className = "pbar"; pr.firstChild.style.width = "100%";
+  const noise = document.createElement("canvas");
+  noise.width = 150; noise.height = Math.max(8, Math.round(150 / card._ar));
+  const nctx = noise.getContext("2d"), grain = nctx.createImageData(noise.width, noise.height);
+  const cols = TILE_COLS * 2, rows = Math.max(8, Math.round(cols / card._ar)), tw = W / cols, th = H / rows, order = shuffled(cols * rows);
+  const start = performance.now(), dur = 2600;
+  await new Promise(done => {
+    const frame = now => {
+      if (!card.isConnected) return done();
+      const t = Math.min(1, (now - start) / dur), e = t * t * (3 - 2 * t);
+      ctx.globalCompositeOperation = "source-over"; ctx.globalAlpha = 1; ctx.filter = "none";
+      if (last) ctx.drawImage(last, 0, 0, W, H); else { ctx.fillStyle = "#06070b"; ctx.fillRect(0, 0, W, H); }
+      ctx.filter = `blur(${((1 - e) * 8).toFixed(2)}px)`; ctx.globalAlpha = Math.min(1, .15 + e * 1.1);
+      ctx.drawImage(img, 0, 0, W, H);
+      ctx.filter = "none"; ctx.globalAlpha = 1;
+      const locked = Math.floor(Math.max(0, (t - .3) / .7) * order.length);
+      for (let i = 0; i < locked; i++) tile(ctx, img, order[i], cols, tw, th, W, H);
+      if (t < 1){
+        const d = grain.data;
+        for (let i = 0; i < d.length; i += 4){ const v = Math.random() * 255; d[i] = d[i + 1] = d[i + 2] = v; d[i + 3] = 255; }
+        nctx.putImageData(grain, 0, 0);
+        ctx.globalCompositeOperation = "overlay"; ctx.globalAlpha = (1 - e) * .72; ctx.imageSmoothingEnabled = false;
+        ctx.drawImage(noise, 0, 0, W, H);
+        ctx.imageSmoothingEnabled = true; ctx.globalCompositeOperation = "source-over"; ctx.globalAlpha = 1;
+        if (Math.random() < .22 * (1 - t)) glitch(card, 1);
+        requestAnimationFrame(frame);
+      } else {
+        ctx.drawImage(img, 0, 0, W, H);
+        done();
+      }
+    };
+    requestAnimationFrame(frame);
+  });
+  if (card.isConnected) buildDone(card, j, false);
 }
 function updateActive(card, j){
   const q = s => card.querySelector(s);
@@ -868,7 +989,8 @@ function updateActive(card, j){
   const stage = q(".stage");
   stage.classList.toggle("queued", j.status === "queued");
   const done = j.status === "generating" ? Math.min(1, (j.step || 0) / j.steps) : 0;
-  stage.style.setProperty("--blur", (j.preview_n ? Math.max(0, 7 * (1 - done) - .5) : 6).toFixed(2) + "px");
+  stage.style.setProperty("--blur", (j.preview_n ? Math.max(0, 6 * (1 - done) - .6) : 6).toFixed(2) + "px");
+  stage.style.setProperty("--grid", (.18 + .5 * (1 - done)).toFixed(2));
   showPreview(card, j);
   q("[data-sub]").textContent = j.status === "generating" ? `Step ${j.step} of ${j.steps}` :
     j.status === "queued" ? "It will start on its own" : j.status === "encoding" ? "Turning your words into guidance" : "Getting the model into memory";
