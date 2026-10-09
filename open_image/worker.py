@@ -54,6 +54,13 @@ def main():
 
         def on_step(pipe, step, timestep, kwargs):
             emit(type="progress", id=job_id, step=step + 1, steps=steps)
+            if engine.preview:
+                try:
+                    frame = engine.preview.frame(final=step + 1 >= steps)
+                    if frame:
+                        emit(type="preview", id=job_id, step=step + 1, data=base64.b64encode(frame).decode())
+                except Exception:
+                    traceback.print_exc()
             return step_guard(pipe, step, timestep, kwargs)
 
         try:

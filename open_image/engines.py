@@ -3,6 +3,8 @@ import gc
 
 import torch
 
+from .preview import Preview
+
 
 def free_memory():
     gc.collect()
@@ -47,6 +49,11 @@ class Engine:
     def __init__(self, model, emit):
         self.model = model
         self.emit = emit
+        self.preview = None
+
+    def watch(self, pipe, req):
+        self.preview = Preview(self.model.family, req["width"], req["height"])
+        self.preview.attach(pipe)
 
     def release(self):
         pass
@@ -98,6 +105,7 @@ class Standard(Engine):
         if m.negative and req.get("negative"):
             kwargs["negative_prompt"] = req["negative"]
         self.emit(type="phase", id=req["id"], phase="generating")
+        self.watch(self.pipe, req)
         try:
             return self.pipe(callback_on_step_end=callback, **kwargs).images[0]
         except TypeError:
@@ -145,6 +153,7 @@ class Chroma(Engine):
             self.pipe = self._load_transformer()
         self.emit(type="phase", id=req["id"], phase="generating")
         emb = {k: v.to("cuda") for k, v in emb.items()}
+        self.watch(self.pipe, req)
         return self.pipe(width=req["width"], height=req["height"], num_inference_steps=req["steps"], guidance_scale=self.model.guidance,
                          generator=torch.Generator("cpu").manual_seed(req["seed"]), callback_on_step_end=callback, **emb).images[0]
 
@@ -187,6 +196,7 @@ class Qwen(Engine):
         self.pipe.enable_model_cpu_offload()
         self.pipe.vae.enable_tiling()
         self.emit(type="phase", id=req["id"], phase="generating")
+        self.watch(self.pipe, req)
         return self.pipe(prompt_embeds=embeds.to("cuda"), prompt_embeds_mask=None if mask is None else mask.to("cuda"),
                          width=req["width"], height=req["height"], num_inference_steps=req["steps"],
                          generator=torch.Generator("cpu").manual_seed(req["seed"]), callback_on_step_end=callback).images[0]

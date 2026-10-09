@@ -34,6 +34,10 @@ CSP = ("default-src 'self'; img-src 'self' blob: data:; style-src 'self' 'unsafe
        "connect-src 'self'; frame-ancestors 'none'; form-action 'none'; base-uri 'none'")
 
 manager = Manager()
+try:
+    vault.set_keep(json.loads(PREFS_FILE.read_text(encoding="utf-8")).get("keep_pictures", "1") != "0")
+except (OSError, ValueError):
+    pass
 installer = Installer()
 resources.monitor.busy = lambda: manager.busy
 app = FastAPI(title="Open Image", version=__version__, docs_url=None, redoc_url=None)
@@ -263,6 +267,18 @@ def generate(req: Generate):
     return {"id": job["id"], "chat_id": chat["id"]}
 
 
+@app.get("/api/jobs/{job_id}/preview")
+def job_preview(job_id: str):
+    job = manager.jobs.get(job_id)
+    if not job:
+        raise HTTPException(404)
+    manager.require_open_chat(job["chat_id"])
+    data = manager.previews.get(job_id)
+    if data is None:
+        raise HTTPException(404)
+    return Response(data, media_type="image/jpeg")
+
+
 @app.post("/api/jobs/{job_id}/cancel")
 def cancel(job_id: str):
     return {"ok": manager.cancel(job_id)}
@@ -366,6 +382,14 @@ def folder_remove(folder_id: str, body: Item):
     return {"ok": True}
 
 
+@app.post("/api/keep")
+def keep_pictures(body: dict):
+    on = bool(body.get("on"))
+    vault.set_keep(on)
+    set_prefs({"keep_pictures": "1" if on else "0"})
+    return {"keep": vault.keep}
+
+
 @app.get("/api/prefs")
 def get_prefs():
     try:
@@ -399,12 +423,32 @@ def bring_to_front():
         user32.SetForegroundWindow(hwnd)
 
 
+def set_icon():
+    """Give the window and its taskbar button the app's own icon instead of Python's."""
+    if os.name != "nt":
+        return
+    import ctypes
+    user32 = ctypes.windll.user32
+    user32.LoadImageW.restype = ctypes.c_void_p
+    user32.SendMessageW.argtypes = (ctypes.c_void_p, ctypes.c_uint, ctypes.c_void_p, ctypes.c_void_p)
+    hwnd = user32.FindWindowW(None, "Open Image")
+    path = str(STATIC / "icon.ico")
+    for which, size in ((1, 256), (0, 32)):  # ICON_BIG, ICON_SMALL
+        icon = user32.LoadImageW(None, path, 1, size, size, 0x10)  # IMAGE_ICON, LR_LOADFROMFILE
+        if hwnd and icon:
+            user32.SendMessageW(hwnd, 0x80, which, icon)  # WM_SETICON
+
+
 def run_window(url):
     import webview
+    if os.name == "nt":
+        import ctypes
+        ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID("OpenImage.App")  # own taskbar group and icon
     webview.settings["ALLOW_DOWNLOADS"] = True
     webview.settings["OPEN_EXTERNAL_LINKS_IN_BROWSER"] = False
     webview.settings["ALLOW_FILE_URLS"] = False
-    webview.create_window("Open Image", f"{url}/?t={TOKEN}", width=1320, height=860, min_size=(900, 620), background_color="#0b0b12")
+    window = webview.create_window("Open Image", f"{url}/?t={TOKEN}", width=1320, height=860, min_size=(900, 620), background_color="#06070b")
+    window.events.shown += set_icon
     webview.start(gui="edgechromium", private_mode=True, debug=False)  # private mode: no profile, cache or cookies are kept
 
 

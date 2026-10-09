@@ -46,6 +46,7 @@ class Manager(Library):
         self.busy = False
         self.last_used = time.time()
         self.cancelled = set()
+        self.previews = {}  # job id -> latest preview JPEG, memory only
         self._restore()
         threading.Thread(target=self._work, daemon=True).start()
         threading.Thread(target=self._reap_idle, daemon=True).start()
@@ -57,7 +58,7 @@ class Manager(Library):
         for job in _load(HISTORY_FILE, []):
             if job["chat_id"] not in self.chats or self.chats[job["chat_id"]].get("protected"):
                 continue
-            if job["status"] == "done":  # pictures live in memory only, so after a restart the card keeps its prompt but not its image
+            if job["status"] == "done" and not vault.has(job["id"]):  # saving was off, or the picture was deleted
                 job.update(image=None, expired=True)
             self.jobs[job["id"]] = job
             self.order.append(job["id"])
@@ -202,6 +203,8 @@ class Manager(Library):
                 self.busy = False
                 self.last_used = time.time()
                 self.cancelled.discard(job["id"])
+                self.previews.pop(job["id"], None)
+                job.pop("preview_n", None)
                 with self.lock:
                     self._save_jobs()
 
@@ -246,6 +249,13 @@ class Manager(Library):
                     job["ctx"] = timing.context()
             elif kind == "progress":
                 job["step"] = event["step"]
+                if job["status"] != "generating":  # a step means it is drawing, whatever phase was last announced
+                    job["status"] = "generating"
+                    job.setdefault("gen_started", time.time())
+                    job.setdefault("ctx", timing.context())
+            elif kind == "preview":
+                self.previews[job["id"]] = base64.b64decode(event["data"])
+                job["preview_n"] = event["step"]
             elif kind == "done":
                 if "gen_started" in job:
                     megapixels = job["width"] * job["height"] / 1e6
@@ -379,7 +389,7 @@ class Manager(Library):
             chat["active"] = active.get(chat["id"], 0)
         chats.sort(key=lambda c: c["updated"], reverse=True)
         return {"jobs": shown, "chats": chats, "queue_ahead_s": ahead, "loaded_model": self.model_id, "busy": self.busy, "resources": res,
-                "locked_chat": shut, "master": self.master_state(), "image_count": done_count, "vault_mb": round(vault.size / 2**20, 1), "vault_full": vault.full}
+                "locked_chat": shut, "master": self.master_state(), "image_count": done_count, "vault_mb": round(vault.size / 2**20, 1), "vault_full": vault.full, "keep": vault.keep}
 
     def _chat_view(self, chat):
         view = dict(chat)
