@@ -212,9 +212,9 @@ class Manager(Library):
         if switching:
             self.stop_worker()  # give back the previous model's memory before checking what is left
             time.sleep(1)
-        if resources.read()["ram_avail_gb"] < 1.5:
-            job.update(status="error", error="Your PC is almost out of free memory. Close a few programs and try again.")
-            return
+            if resources.read()["ram_avail_gb"] < 1.5:  # only a cold start needs fresh memory; a loaded model already has its share
+                job.update(status="error", error="Your PC is almost out of free memory. Close a few programs and try again.")
+                return
 
         if switching:
             began = time.time()
