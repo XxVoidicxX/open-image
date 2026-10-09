@@ -1,10 +1,12 @@
 from huggingface_hub import snapshot_download
 
-from .catalog import BY_ID, MODEL_LIST
+from .catalog import BY_ID, MARKER, MODEL_LIST
 
 
 def fetch(model):
-    print(f"{model.name}: downloading from {model.repo}")
+    print(f"{model.name}: downloading from {model.repo}", flush=True)
+    model.path.mkdir(parents=True, exist_ok=True)
+    (model.path / MARKER).unlink(missing_ok=True)
     snapshot_download(
         model.repo,
         local_dir=str(model.path),
@@ -12,7 +14,8 @@ def fetch(model):
         ignore_patterns=list(model.ignore) or None,
         max_workers=8,
     )
-    print(f"{model.name}: done")
+    (model.path / MARKER).touch()
+    print(f"{model.name}: done", flush=True)
 
 
 def run(names):

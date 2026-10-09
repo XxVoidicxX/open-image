@@ -73,7 +73,7 @@ class Standard(Engine):
         elif fam == "sdxl-anime":
             pipe = StableDiffusionXLPipeline.from_pretrained(path, torch_dtype=torch.float16)
             pipe.scheduler = EulerAncestralDiscreteScheduler.from_config(pipe.scheduler.config)
-        elif fam == "pony":
+        elif fam == "sdxl-single":
             ckpt = next(m.path.glob("*.safetensors"))
             pipe = StableDiffusionXLPipeline.from_single_file(str(ckpt), torch_dtype=torch.float16)
             pipe.scheduler = EulerAncestralDiscreteScheduler.from_config(pipe.scheduler.config)

@@ -6,6 +6,7 @@ HOME = Path(os.environ.get("OPEN_IMAGE_HOME") or Path.home() / "OpenImage").expa
 MODELS = HOME / "models"
 IMAGES = HOME / "images"
 DATA = HOME / "data"
+THUMBS = DATA / "thumbs"
 
-for _d in (MODELS, IMAGES, DATA):
+for _d in (MODELS, IMAGES, DATA, THUMBS):
     _d.mkdir(parents=True, exist_ok=True)
