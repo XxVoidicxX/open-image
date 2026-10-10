@@ -1,0 +1,19 @@
+# Exact versions the Windows release is built and tested with. torch and torchvision come from the PyTorch CUDA 12.8 index.
+torch==2.11.0
+torchvision==0.26.0
+fastapi==0.143.0
+uvicorn==0.54.0
+psutil==7.2.2
+nvidia-ml-py==13.615.71
+pillow==12.3.0
+numpy==2.5.2
+cryptography==50.0.2
+pywebview==6.2.1
+huggingface_hub==1.33.0
+accelerate==1.15.0
+safetensors==0.8.0
+sentencepiece==0.2.2
+protobuf==7.36.2
+bitsandbytes==0.50.2
+transformers==5.19.0
+diffusers @ https://github.com/huggingface/diffusers/archive/1d5d056ecff3a8c1d887a7dd1aa66ca4a0323458.zip

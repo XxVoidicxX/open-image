@@ -29,7 +29,17 @@ It is built for mid-range cards. Everything here was developed and tested on an 
 - Python 3.10 or newer
 - Disk space for the models you pick (see the table)
 
-## Install
+## Download (Windows)
+
+Grab `OpenImage-<version>.exe` from the [Releases page](https://github.com/XxVoidicxX/open-image/releases) and run it. No admin rights and no Python needed.
+
+The first run sets everything up for your Windows account: it downloads a private copy of Python and the AI libraries (PyTorch with CUDA and friends, about 4 GB) into `%LOCALAPPDATA%\OpenImage`, adds Open Image to the Start menu and the desktop, and opens the app. That takes a few minutes on a fast connection. After that it starts straight away. Running a newer release later updates it in place and keeps your chats, pictures and models.
+
+The exe isn't code-signed, so Windows SmartScreen may warn the first time; choose More info, then Run anyway. To remove Open Image, delete `%LOCALAPPDATA%\OpenImage` (the program), the Start menu and desktop shortcuts, and `%USERPROFILE%\OpenImage` (your chats, pictures and models).
+
+To build the exe yourself: install [uv](https://docs.astral.sh/uv/) and run `python packaging/build.py`. It lands in `dist/`.
+
+## Install from source
 
 ```
 git clone https://github.com/XxVoidicxX/open-image
@@ -139,7 +149,7 @@ To add a model, add an entry to `catalog.py` and, if it is a new architecture, a
 
 ## Status
 
-Version 0.5. Not done yet: image-to-image and editing, and testing on Linux.
+Version 0.6. Not done yet: image-to-image and editing, and testing on Linux.
 
 ## License
 
